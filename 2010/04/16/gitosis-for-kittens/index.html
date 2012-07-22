@@ -1,0 +1,190 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Gitosis for kittens | NEVERSAW.US</title>
+        <link rel="stylesheet" href="/media/css/reset.css"  media="screen" type="text/css" />
+        <link rel="stylesheet" href="/media/css/style.css" media="screen" type="text/css" />
+        <script type="text/javascript" src="//use.typekit.net/hae5bpn.js"></script>
+        <script type="text/javascript">try{Typekit.load();}catch(e){}</script>
+    </head>
+    <body id="">
+
+        <header>
+          <h1 id="logo"><a href="/" rel="top">NeverSawUs</a></h1>
+        </header>
+        <div id="target"></div>
+        <div id="wrap">
+            <nav>
+            
+                
+                
+  <aside>
+    <time>
+      April 16, 2010
+    </time>
+  </aside>
+
+                
+                    <a href="/2010/04/16/welcome/" rel="next">next</a>
+                
+            
+            </nav>
+            
+<article>
+  <h1>Gitosis for kittens</h1>
+<p>Gitosis is a great way to super-securely provide repository management for teams.
+However, there&#39;s a few points at which it kind of falls on its face.
+
+</p>
+<ul>
+<li><p>Creating new repositories requires write-access to gitosis-admin</p>
+</li>
+<li><p>Forking teammate&#39;s repositories basically requires you to write a script
+to handle adding the <code>readonly</code> and <code>writeable</code> bits to every existing user&#39;s
+group. Past a team of two, this quickly gets unmaintainable.</p>
+</li>
+<li><p>In my opinion, it tries to do too much. It handles git, it handles auth, it handles
+what happens when the ssh command comes in from OpenSSH &mdash; it&#39;s <em>monolithic</em>.</p>
+</li>
+</ul>
+<p>With these points in mind, I set out to chop all of these little pieces of functionality 
+up into little, single-concern bits. I ended up with three projects, <a href="http://github.com/chrisdickinson/nappingcat">Nappingcat</a>, <a href="http://github.com/chrisdickinson/kittygit">Kittygit</a>,
+and <a href="http://github.com/chrisdickinson/felix">Felix</a>. These projects slice gitosis functionality into two app-level constructs, and
+one framework-level project. <code>Nappingcat</code> is the framework; it provides functionality for
+routing SSH commands and hooks for loading a simple auth backend. <code>Kittygit</code> is the git functionality;
+it knows how to speak to git, and provides a few niceties like creation of repositories and forking
+of existing repositories over the wire. <code>Felix</code> is the last (and probably most experimental piece),
+providing an authentication backend based around a JSON flat file, and providing over-the-wire
+commands for creating new users, adding SSH keys to those users, and granting permissions
+to the users.
+
+</p>
+<hr>
+<h1>Introducing Nappingcat</h1>
+<h2>the archetypical cat</h2>
+<p>Setting things up with nappingcat isn&#39;t immensely hard. It basically follows these easy steps:
+
+</p>
+<ol>
+<li>Clone the <a href="git://github.com/chrisdickinson/nappingcat.git">nappingcat repository</a>.</li>
+<li>Run <code>sudo setup.py install</code> to provide everyone the <code>nappingcat-serve</code> command.</li>
+<li><p>Create a new user</p>
+<pre><code> useradd -m \        <span class="comment"># create a home directory</span>
+         -U \        <span class="comment"># create a new group for the user</span>
+         -s /bin/bash \
+         -r \        <span class="comment"># it's a system account.</span>
+         git         <span class="comment"># the name of the user</span></code></pre>
+</li>
+<li><p>Clone <a href="git://github.com/chrisdickinson/kittygit.git">kittygit</a> and <a href="git://github.com/chrisdickinson/felix.git">felix</a> into the new user&#39;s home directory.</p>
+</li>
+<li><p>Open up <code>~/nappingcat.conf</code>, fill out the following data:</p>
+<pre><code> [kittyconfig]
+ routers =
+         kittygit.patterns
+         felix.patterns
+ auth = felix.JSONAuth
+ paths =
+         /home/&lt;your git user>/kittygit
+         /home/&lt;your git user>/felix
+         &lt;wherever you installed nappingcat>
+ [kittygit]
+ git = /usr/bin/git
+ repo_dir = ~/repos
+ user = &lt;your git user> 
+ host = &lt;the externally accessible url <span class="keyword">for</span> <span class="keyword">this</span> server>
+
+ [jsonauth]
+ file = ~/auth.json</code></pre>
+</li>
+<li><p>Create a basic auth.json layout using the felix/bin/create_superuser file.</p>
+<pre><code> cd ~/felix
+ cat ~/.ssh/id_rsa.pub | python bin/create_superuser.py YOUR_USERNAME &gt; ~/auth.json</code></pre>
+</li>
+<li><p>Great! Back to your computer. Put this at the end of your <code>~/.bashrc</code>, and <code>source ~/.bashrc</code></p>
+<pre><code> kittygit() {
+     <span class="keyword">case</span> $<span class="number">1</span> in
+         create)
+             ssh git@unbearablecomics.com <span class="string">"kitty-git create-repo '$2'"</span>
+         ;;
+         fork)
+             ssh git@unbearablecomics.com <span class="string">"kitty-git fork '$2/$3.git'"</span>
+         ;;
+         grant)
+             ssh git@unbearablecomics.com <span class="string">"add-permission $2 '$3'"</span>
+         ;;
+         revoke)
+             ssh git@unbearablecomics.com <span class="string">"remove-permission $2 '$3'"</span>
+         ;;
+         adduser)
+             ssh git@unbearablecomics.com <span class="string">"add-user $2"</span>
+         ;;
+         addkey)
+             ssh git@unbearablecomics.com <span class="string">"add-key-to-user $2"</span>
+         ;;
+     esac
+ }</code></pre>
+</li>
+<li><p>Give yourself the right to create repositories:</p>
+<pre><code> $ kittygit grant YOUR_USERNAME kittygit::create</code></pre>
+</li>
+</ol>
+<hr>
+<h1>creating repos</h1>
+<h2>like a boss</h2>
+<p>Creating repos is easy enough at this point. It&#39;s just <code>kittygit create reponame</code>. Kittygit will
+send you back an beautifully green message saying &quot;oh hey, here&#39;s the repo to clone.&quot; Go ahead and
+clone it. Things are great!
+
+</p>
+<pre><code>kittygit create garybusey</code></pre>
+<p>But oh wait. No one is around to care. Maybe it&#39;s time to populate this lonely little cat-themed
+world. Let&#39;s pretend your name is &quot;William Howard Taft&quot;, and you have a friend, &quot;Harry Truman.&quot;
+
+</p>
+<pre><code>kittygit adduser harrytruman 
+cat harry_trumans_id_rsa.pub | kittygit addkey harrytruman 
+kittygit grant harrytruman kittygit::read::williamhowardtaft/garybusey</code></pre>
+<p>Now your friend has access to read your repository. Your friend, we&#39;ll call him If he or she installs the kittygit bash function
+above, working with your code is now as easy as:
+
+</p>
+<pre><code>kittygit fork williamhowardtaft garybusey
+git <span class="keyword">clone</span> git@example.com:harrytruman/garybusey.git
+<span class="comment"># BAM INSTANT GARY BUSEY</span>
+kittygit grant williamhowardtaft kittygit::read::harrytruman/garybusey</code></pre>
+<p>And now Harry Truman can tell Taft &mdash; casually over a light lunch, perhaps &mdash; that Taft can add
+his copy of garybusey as a remote. 
+</p>
+
+</article>
+
+
+        </div>
+
+        <footer>
+            <div>
+                <h4>Chris Dickinson&rsquo;s personal blog</h4>
+                <ul>
+                  <li><a href="/feed.xml" rel="rss">RSS</a></li>
+                  <li><a href="http://twitter.com/isntitvacant" rel="twitter">@isntitvacant</a></li>
+                  <li><a href="http://github.com/chrisdickinson" rel="github">@chrisdickinson</a></li>
+                  <li><a href="http://search.npmjs.org/#/_author/Chris%20Dickinson" rel="npm">npm</a></li>
+                  <li><a href="http://pypi.python.org/pypi?%3Aaction=search&term=chris+dickinson&submit=search" rel="pypi">pypi</a></li>
+                  <li id="copy"><p>&copy; 2012</p></li>
+                </ul>
+            </div>
+        </footer>
+
+        <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+        </script>
+        <script type="text/javascript">
+            try{
+                var pageTracker = _gat._getTracker("UA-18206985-1");
+                pageTracker._trackPageview();
+            } catch(err) {}
+        </script>
+    </body>
+</html>
+

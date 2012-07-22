@@ -1,0 +1,430 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Py A La Node. | NEVERSAW.US</title>
+        <link rel="stylesheet" href="/media/css/reset.css"  media="screen" type="text/css" />
+        <link rel="stylesheet" href="/media/css/style.css" media="screen" type="text/css" />
+        <script type="text/javascript" src="//use.typekit.net/hae5bpn.js"></script>
+        <script type="text/javascript">try{Typekit.load();}catch(e){}</script>
+    </head>
+    <body id="">
+
+        <header>
+          <h1 id="logo"><a href="/" rel="top">NeverSawUs</a></h1>
+        </header>
+        <div id="target"></div>
+        <div id="wrap">
+            <nav>
+            
+                
+                    <a href="/2010/05/12/templates-kind-of-suck/" rel="prev">prev</a>
+                
+                
+  <aside>
+    <time>
+      May 20, 2010
+    </time>
+  </aside>
+
+                
+                    <a href="/2010/06/07/git-thee-hence/" rel="next">next</a>
+                
+            
+            </nav>
+            
+<article>
+  <h1>Py A La Node.</h1>
+<h2>Or, &quot;Watch where you stick that Python!&quot;</h2>
+<p>Have you heard about <a href="http://nodejs.org">Node.js</a>? It&#39;s pretty awesome. Evented IO for
+servers! All of the promise of erlang, with a syntax that you <em>probably already know</em>.
+But, you know, it&#39;d be really nice if I could take my various django applications with
+me when I leave on this coffee-themed rapture. Bonus points if I can take all of the
+muscle memory I developed using python libraries with me as a carry-on.
+
+</p>
+<p>Wouldn&#39;t it be cool if this worked:
+
+</p>
+<pre><code><span class="comment"># my_module.py</span>
+def greet(greeting, *greeters):
+    <span class="keyword">return</span> greeting % <span class="string">' and '</span>.join(greeters)
+
+-----------
+<span class="comment">// python.js</span>
+<span class="keyword">var</span> python = <span class="keyword">require</span>(<span class="string">'python'</span>),
+    sys = <span class="keyword">require</span>(<span class="string">'sys'</span>),
+    py_sys = python.import(<span class="string">'sys'</span>),
+    path = py_sys.path;
+
+path.append(process.cwd());
+<span class="keyword">var</span> my_module = python.import(<span class="string">'my_module'</span>);
+sys.puts(my_module.greet(<span class="string">"hello from %s"</span>, <span class="string">"python"</span>, <span class="string">"javascript"</span>));</code></pre>
+<p>With that goal in mind (and a whole lot of free time on my hands, since the weather has 
+been so crappy in Lawrence lately), I set out on an adventure! <strong>Can I make Python work with
+Node.js?</strong> I&#39;ve got a background in C++ (of course, this is C++ from almost 10 years ago,
+and it was all developed in MSVC, so...), and I&#39;ve always wanted to poke around with the
+CPython internals &mdash; not to mention that I was really excited to take a look under the 
+hood at V8.
+
+</p>
+<p>Let&#39;s get started by building a really simple plugin for node.js in C++ using the V8 engine.
+You know what was really handy when figuring this stuff out? Links to documentation.
+
+</p>
+<ol>
+<li><a href="http://bespin.cz/~ondras/html/annotated.html">The DOxygen docs were really helpful, believe it or not</a></li>
+<li><a href="http://code.google.com/apis/v8/embed.html">The Google V8 Embedder&#39;s guide is also pretty cool</a> </li>
+<li><a href="http://github.com/ry/node.git">Grab the Node.js source code</a></li>
+<li><a href="http://github.com/ry/node_postgres.git">ry&#39;s node_postgres is also very instructive.</a></li>
+</ol>
+<p>This is pretty much the extent of the documentation I was able to find. Keep in mind I&#39;m
+building on OSX 10.6, and the following steps may contain some things specific to OSX building.
+
+
+</p>
+<hr>
+<h1>Aim low, sweet chariot</h1>
+<h2>Comin for to java me hooome</h2>
+<p>First thing&#39;s first. We need to make sure we can actually compile a C++ plugin for node,
+and call it from javascript. It&#39;s not too hard. Node&#39;s build process uses <code>waf</code>, for which
+they provide a <code>node-waf</code> command. Put the following into a file called <code>wscript</code> in your
+working directory:
+
+</p>
+<pre><code><span class="comment"># wscript</span>
+import Options
+from os import unlink, symlink, popen
+from os.path import exists 
+
+srcdir = <span class="string">'.'</span>
+blddir = <span class="string">'build'</span>
+VERSION = <span class="string">'0.0.1'</span>
+
+def set_options(opt):
+    opt.tool_options(<span class="string">'compiler_cxx'</span>)
+    opt.tool_options(<span class="string">'python'</span>)
+
+def configure(conf):
+    conf.check_tool(<span class="string">'compiler_cxx'</span>)
+    conf.check_tool(<span class="string">'node_addon'</span>)
+    conf.check_tool(<span class="string">'osx'</span>)                <span class="comment"># see what I mean about OSX specific?</span>
+    conf.check_tool(<span class="string">'python'</span>)
+
+def build(bld):
+    obj = bld.new_task_gen(<span class="string">'cxx'</span>, <span class="string">'shlib'</span>, <span class="string">'node_addon'</span>, <span class="string">'py'</span>, <span class="string">'pyembed'</span>, <span class="string">'pyext'</span>)
+    obj.env[<span class="string">'FRAMEWORK'</span>] = <span class="string">'python'</span>
+    obj.target = <span class="string">'binding'</span>
+    obj.source = <span class="string">"binding.cc"</span>
+    obj.init_py()
+    obj.init_pyembed()
+
+def shutdown():
+    <span class="keyword">if</span> Options.commands[<span class="string">'clean'</span>]:
+        <span class="keyword">if</span> exists(<span class="string">'binding.node'</span>):
+            unlink(<span class="string">'binding.node'</span>)
+    <span class="keyword">else</span>:
+        <span class="keyword">if</span> exists(<span class="string">'build/default/binding.node'</span>) <span class="keyword">and</span> not exists(<span class="string">'binding.node'</span>):
+            symlink(<span class="string">'build/default/binding.node'</span>, <span class="string">'binding.node'</span>)</code></pre>
+<p>To enable python support, we&#39;re setting <code>tool_options</code>, <code>check_tool</code>, adding the <code>python</code> framework
+to <code>obj.env</code>, and adding <code>pyembed</code> and <code>pyext</code> to the <code>new_task_gen</code> (then we go off an <code>init_py</code> and
+<code>init_pyembed</code>.) This is pretty much verbatim from ry&#39;s <code>node_postgres</code> repo except for those lines,
+and minus the lines referencing postgres specifically. (thanks ry!)
+
+</p>
+<p>&#39;Kay. So node-waf will freak out if you run it now, since there is no such file as <code>binding.cc</code>. Let&#39;s
+make a super simple one:
+
+</p>
+<pre><code><span class="comment">// binding.cc</span>
+<span class="comment">#include &lt;v8.h></span>
+
+using <span class="keyword">namespace</span> v8;
+
+<span class="comment">// all node plugins must emit</span>
+<span class="comment">// a "init" function</span>
+extern <span class="string">"C"</span> void
+init (Handle&lt;Object> target) {
+    HandleScope scope;
+    Local&lt;String> output = String::<span class="keyword">New</span>(<span class="string">"hello javascript!"</span>);
+    target->Set(String::<span class="keyword">New</span>(<span class="string">"greeting"</span>), output);
+}</code></pre>
+<p>Run <code>node-waf configure build</code>, and you should see that it generated a <code>binding.node</code>. Now, let&#39;s test
+it out:
+
+</p>
+<pre><code><span class="comment">// test.js</span>
+<span class="keyword">var</span> sys = <span class="keyword">require</span>(<span class="string">'sys'</span>),
+    binding = <span class="keyword">require</span>(<span class="string">'./binding'</span>);
+
+sys.puts(binding.greeting);     <span class="comment">// should output "hello javascript!"</span></code></pre>
+<p>Run <code>node test.js</code> and you should see the expected output. So what did we do? <code>HandleScope scope</code>
+initializes a V8 scope. All objects are referred to by <code>Handle</code> wrappers, and local variables in a scope
+are referred to with a subclass of that wrapper, <code>Local</code>.
+
+</p>
+<p><code>target</code> is the equivalent of <code>exports</code> in node.js. We&#39;re creating a new string object and assigning it to
+the index <code>greeting</code> within that <code>exports</code>. Super simple? I already kind of like this. Let&#39;s mix it up, just
+slightly:
+
+
+</p>
+<pre><code><span class="comment">// binding.cc</span>
+<span class="comment">#include &lt;v8.h></span>
+<span class="comment">#include &lt;string></span>
+
+using <span class="keyword">namespace</span> v8;
+using std::string;
+
+
+<span class="comment">// functions return handles.</span>
+Handle&lt;Value>
+SayHello(<span class="keyword">const</span> Arguments&amp; args) {
+    HandleScope scope;
+    <span class="keyword">if</span>(args.Length() != <span class="number">1</span> || !args[<span class="number">0</span>]->IsString()) {
+        <span class="keyword">return</span> ThrowException(
+            <span class="keyword">Exception</span>::Error(String::<span class="keyword">New</span>(<span class="string">"You gotta call this with a string, dog."</span>))
+        );
+    }
+
+    <span class="comment">// convert the value of the first argument to a UTF8String.</span>
+    <span class="comment">// the `*` dereference is important!</span>
+    char* utf8value = *String::Utf8Value(args[<span class="number">0</span>]->ToString());
+
+    <span class="comment">// using std::string, put together a nice greeting</span>
+    string greeting(<span class="string">"Hello "</span>),
+        to_who(utf8value),
+        result = greeting + to_who;
+
+    <span class="comment">// close the scope around our result (given that our result is local, we need</span>
+    <span class="comment">// to tell the scope we're returning it.)</span>
+    <span class="comment">// technically you don't have to give the length of the string, but I feel</span>
+    <span class="comment">// safer that way.</span>
+    <span class="keyword">return</span> scope.Close(String::<span class="keyword">New</span>(result.c_str(), result.length()));
+}
+
+extern <span class="string">"C"</span> void
+init (Handle&lt;Object> target) {
+    HandleScope scope;
+    <span class="comment">// create a new wrapped FunctionTemplate</span>
+    Local&lt;FunctionTemplate> say_hello = FunctionTemplate::<span class="keyword">New</span>(SayHello);
+
+    <span class="comment">// and grab the actual function out of it, assign it to 'greeting'</span>
+    target->Set(String::<span class="keyword">New</span>(<span class="string">"greeting"</span>), say_hello->GetFunction());
+}</code></pre>
+<p>Now you should be able to do things like <code>binding.greeting(&quot;butts&quot;);</code> and get the best sophomoric response
+from your C++ plugin. Joy and joy unrelenting! V8 makes it really, really, easy to create C++ plugins.
+
+</p>
+<hr>
+<h1>And now for something completely different.</h1>
+<h2>Py_ in yr eye</h2>
+<p>So we&#39;ve successfully called into C++ from Javascript at this point. Not a small victory! We should probably
+talk about Python a little now. Their API is written in C &mdash; which is, IMHO, a much saner language than C++.
+However, the code you end up writing to make sure all is well in CPython world ends up being so very much
+more verbose than the V8 code you&#39;ve seen above.
+
+</p>
+<pre><code><span class="comment">#include &lt;python2.6/Python.h></span>
+
+Handle&lt;Value>
+ImportAModule(<span class="keyword">const</span> Arguments&amp; args) {
+    HandleScope scope;
+    <span class="keyword">if</span>(args.Length() &lt; <span class="number">1</span> || !args[<span class="number">0</span>]->IsString()) {
+        <span class="keyword">return</span> ThrowException(
+            <span class="keyword">Exception</span>::Error(String::<span class="keyword">New</span>(<span class="string">"I don't know how to import that."</span>))
+        );
+    }
+    Py_Initialize();
+    PyObject* module_name = PyString_FromString(*String::Utf8Value(args[<span class="number">0</span>]->ToString()));
+    PyObject* module = PyImport_Import(module_name);
+    PyObject* module_as_string = PyObject_Str(module);
+    char* cstr = PyString_AsString(module_as_string);
+    Local&lt;String> jsstr = String::<span class="keyword">New</span>(cstr);
+
+    Py_XDECREF(module_as_string);
+    Py_XDECREF(module);
+    Py_XDECREF(module_name);
+    Py_Finalize();
+    <span class="keyword">return</span> scope.Close(jsstr);
+}</code></pre>
+<p>And add it to the list of things being exported in your <code>init</code> function. So you basically have to be as explicit
+as humanly possible with CPython (not necessarily a bad thing, at least there&#39;s no crazy magic going on.) This just
+calls into python, imports the module, and returns the result of <code>str(module)</code> from inside python. <code>Py_Initialize</code>
+starts up the interpreter, <code>Py_Finalize</code> shuts it down, while <code>Py_XDECREF</code> decrements the reference count of the 
+python object (when there are no more references, the object is freed). We&#39;re one step down the path, now. 
+
+
+</p>
+<hr>
+<h1>back to javascript.</h1>
+<h2>because now we need to know how to make objects.</h2>
+<p>So what we&#39;ve got is helpful &mdash; we&#39;ve peeked into Python, said &quot;hi&quot;, and left just as quickly. For the moment, that&#39;s
+all we&#39;re going to do with python. We need to go back into Javascript-land, and figure out how to make an object that
+can wrap our adorable little <code>PyObject*</code>&#39;s. We&#39;ll probably want to provide the typical javascript accessors <code>valueOf</code>
+and <code>toString</code>, not to mention overriding what happens when we call the objects as a function. Property access should
+be controlled so we can attempt to load up <code>PyObject*</code> children of the current <code>PyObject*</code>. Wow! That&#39;s a mouthful.
+
+
+</p>
+<pre><code><span class="comment">// assuming that we have python_function_template_</span>
+<span class="comment">//         static Persistent&lt;FunctionTemplate> python_function_template_;</span>
+
+<span class="keyword">static</span> void
+Initialize(Handle&lt;Object> target) {
+    HandleScope scope;
+    Local&lt;FunctionTemplate> fn_tpl = FunctionTemplate::<span class="keyword">New</span>();                                                
+    Local&lt;ObjectTemplate> obj_tpl = fn_tpl->InstanceTemplate();                                              
+
+    obj_tpl->SetInternalFieldCount(<span class="number">1</span>);                                                                       
+
+    <span class="comment">// this has first priority. see if the properties already exist on the python object                     </span>
+    obj_tpl->SetNamedPropertyHandler(Get, Set);                                                              
+
+    <span class="comment">// If we're calling `toString`, delegate to our version of ToString                                      </span>
+    obj_tpl->SetAccessor(String::NewSymbol(<span class="string">"toString"</span>), ToStringAccessor);                                   
+
+    <span class="comment">// Python objects can be called as functions.</span>
+    obj_tpl->SetCallAsFunctionHandler(Call, Handle&lt;Value>());                                                
+
+    python_function_template_ = Persistent&lt;FunctionTemplate>::<span class="keyword">New</span>(fn_tpl);                                   
+    <span class="comment">// let's also export "import"                                                                            </span>
+    Local&lt;FunctionTemplate> import = FunctionTemplate::<span class="keyword">New</span>(Import);                                          
+    target->Set(String::<span class="keyword">New</span>(<span class="string">"import"</span>), import->GetFunction());                                               
+};       </code></pre>
+<p>That leaves us to define <code>Import</code>, <code>ToStringAccessor</code>, <code>Call</code>, <code>Get</code>, and <code>Set</code>. I&#39;ll be referring to snippets from
+<a href="http://github.com/chrisdickinson/node-python">the node-python</a> repository from this point forward, as we&#39;re about to
+start getting a little heady, file-size wise. Importantly, we&#39;ve introduced a class: <code>PyObjectWrapper</code>, which inherits
+from <code>ObjectWrap</code> &mdash; a utility class that Node.js provides to deal with garbage collection of C++ classes. 
+
+</p>
+<p>Let&#39;s take a look at the accessor functions first.
+
+</p>
+<pre><code><span class="keyword">static</span> Handle&lt;Value>
+ToStringAccessor(Local&lt;String> property, <span class="keyword">const</span> AccessorInfo&amp; info) {
+    HandleScope scope;
+    Local&lt;FunctionTemplate> func = FunctionTemplate::<span class="keyword">New</span>(ToString);
+    <span class="keyword">return</span> scope.Close(func->GetFunction());
+};</code></pre>
+<p>Accessors are pretty simple. In the case that the accessor should be called as a function &mdash; like toString should --
+we just create a <code>FunctionTemplate</code>, assign it to the function we want to call, and return that function. You can access
+the current object by calling <code>info.Holder()</code> &mdash; and if you need the C++ PyObjectWrapper object, call
+<code>PyObjectWrapper* pyobjwrapper = ObjectWrap::Unwrap&lt;PyObjectWrapper&gt;(info.Holder());</code>. Easy peasy! 
+
+</p>
+<pre><code><span class="keyword">static</span> Handle&lt;Value>
+ToString(<span class="keyword">const</span> Arguments&amp; args) {
+    HandleScope scope;
+    Local&lt;Object> this_object = args.<span class="keyword">This</span>();
+    PyObjectWrapper* pyobjwrap = ObjectWrap::Unwrap&lt;PyObjectWrapper>(args.<span class="keyword">This</span>());
+    Local&lt;String> result = String::<span class="keyword">New</span>(pyobjwrap->InstanceToString().c_str());          <span class="comment">// &lt;-- this is the exciting line</span>
+    <span class="keyword">return</span> scope.Close(result);
+}</code></pre>
+<p>We&#39;re just delegating to the actual object! How nice. And now &mdash; look at <code>InstanceToString()</code>:
+
+</p>
+<pre><code>string InstanceToString() {
+    PyObject* as_string = PyObject_Str(mPyObject);
+    string native_string(PyString_AsString(as_string));
+    Py_XDECREF(as_string);
+    <span class="keyword">return</span> native_string;
+}</code></pre>
+<p><strong>PWHEW.</strong> We&#39;re done with our call to <code>toString()</code>. <code>valueOf</code> works in a very similar fashion, though it delves into the
+code ghetto that is <code>ValueOf</code>, where we have to decide what kind of object to cast our internal <code>PyObject*</code> to.
+
+</p>
+<p>Now &mdash; the <code>NamedPropertyHandlers</code>, <code>Get</code> and <code>Set</code>.
+
+</p>
+<pre><code>    <span class="keyword">static</span> Handle&lt;Value>
+    Get(Local&lt;String> key, <span class="keyword">const</span> AccessorInfo&amp; info) {
+        <span class="comment">// returning an empty Handle&lt;Value> object signals V8 that we didn't</span>
+        <span class="comment">// find the property here, and we should check the "NamedAccessor" functions</span>
+        HandleScope scope;
+        PyObjectWrapper* wrapper = ObjectWrap::Unwrap&lt;PyObjectWrapper>(info.Holder());
+        String::Utf8Value utf8_key(key);
+        string value(*utf8_key);
+        PyObject* result = wrapper->InstanceGet(value);         <span class="comment">// call down into `InstanceGet`.</span>
+        <span class="keyword">if</span>(result) {
+            RETURN_NEW_PYOBJ(scope, result);        <span class="comment">// &lt;-- a macro to create a PyObjectWrapper instance, wrap it around a jsobj</span>
+                                                    <span class="comment">// and return it.</span>
+        }
+        <span class="keyword">return</span> Handle&lt;Value>();
+    }
+
+    PyObject* InstanceGet(<span class="keyword">const</span> string&amp; key) {
+        <span class="keyword">if</span>(PyObject_HasAttrString(mPyObject, key.c_str())) {
+            PyObject* attribute = PyObject_GetAttrString(mPyObject, key.c_str());
+            <span class="keyword">return</span> attribute;
+        }
+        <span class="keyword">return</span> (PyObject*)<span class="keyword">NULL</span>;
+    }</code></pre>
+<p>Things to note: <code>return Handle&lt;Value&gt;();</code> in <code>Get</code> signals to V8 that we haven&#39;t found any corresponding property
+for the <code>key</code> we were passed, and that it should continue to looking at the <code>Accessor</code> elements to figure out if
+we can avoid returning <code>undefined</code>. Otherwise, we&#39;re just asking Python if our object has that attribute,
+and then returning it unwrapped if it does. Just to be comprehensive; I present the <code>RETURN_NEW_PYOBJ</code> macro:
+
+</p>
+<pre><code><span class="comment">#define RETURN_NEW_PYOBJ(scope,pyobject) \</span>
+        Local&lt;Object> jsobject = python_function_template_->GetFunction()->NewInstance();   \
+        PyObjectWrapper* py_object_wrapper = <span class="keyword">new</span> PyObjectWrapper(pyobject);                 \
+        py_object_wrapper->Wrap(jsobject);                                                  \
+        <span class="keyword">return</span> scope.Close(jsobject);</code></pre>
+<p>We create a local instance of the <code>python_function_template_</code>, which carries along our property accessors, etc,
+and wraps it with our <code>python_function_template_</code>. Internally, V8 Javascript objects are able to carry around an
+&quot;InternalField&quot;, which is just a <code>void*</code> pointer to whatever C++ object you wish to piggyback on that javascript
+object.
+
+</p>
+<p>That&#39;s pretty much the C++ side of things. The new <code>Import</code> function calls <code>RETURN_NEW_PYOBJ</code> on the module we
+load up.
+
+</p>
+<hr>
+<h1>ObjectWrapping up</h1>
+<h2>yeah, that pun was lame</h2>
+<p>Hopefully that wasn&#39;t too scattershot to follow. At this point, if you compiled it, you could import python modules,
+append to <code>sys.path</code>, and load up custom modules. Included in my <code>node-python</code> repo is a really really simple, 
+somewhat broken <code>wsgi.js</code> file that calls into WSGI from node.js.
+
+</p>
+<p>My experience with this binding is as follows: it is analogous to a <code>mod_python</code>, except for <code>node.js</code>, and it
+probably has the exact same things against it. Embedding a python process doesn&#39;t let you predict the memory usage,
+and it&#39;s made even worse by the fact that V8 garbage collects only at certain points. I would certainly avoid using
+it in a production setting at the moment. I&#39;m currently leaning towards connecting to a UWSGI socket through Node.js,
+and I have a project that follows that format on <a href="http://github.com/chrisdickinson/node-uwsgi">github</a>. At the very
+least, hopefully this opens up the possibility of writing C++ plugins to node to more developers.  
+</p>
+
+</article>
+
+
+        </div>
+
+        <footer>
+            <div>
+                <h4>Chris Dickinson&rsquo;s personal blog</h4>
+                <ul>
+                  <li><a href="/feed.xml" rel="rss">RSS</a></li>
+                  <li><a href="http://twitter.com/isntitvacant" rel="twitter">@isntitvacant</a></li>
+                  <li><a href="http://github.com/chrisdickinson" rel="github">@chrisdickinson</a></li>
+                  <li><a href="http://search.npmjs.org/#/_author/Chris%20Dickinson" rel="npm">npm</a></li>
+                  <li><a href="http://pypi.python.org/pypi?%3Aaction=search&term=chris+dickinson&submit=search" rel="pypi">pypi</a></li>
+                  <li id="copy"><p>&copy; 2012</p></li>
+                </ul>
+            </div>
+        </footer>
+
+        <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+        </script>
+        <script type="text/javascript">
+            try{
+                var pageTracker = _gat._getTracker("UA-18206985-1");
+                pageTracker._trackPageview();
+            } catch(err) {}
+        </script>
+    </body>
+</html>
+

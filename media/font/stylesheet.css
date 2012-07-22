@@ -1,0 +1,42 @@
+@font-face {
+	font-family: 'QuicksandLight';
+	src: url('../font/Quicksand_Light.eot');
+	src: local('Quicksand'), local('QuicksandLight-Regular'), url('../font/Quicksand_Light.woff') format('woff'), url('../font/Quicksand_Light.ttf') format('truetype'), url('../font/Quicksand_Light.svg#QuicksandLight-Regular') format('svg');
+}
+
+@font-face {
+	font-family: 'QuicksandLightOblique';
+	src: url('../font/Quicksand_Light_Oblique.eot');
+	src: local('Quicksand'), local('QuicksandLightOblique-Regular'), url('../font/Quicksand_Light_Oblique.woff') format('woff'), url('../font/Quicksand_Light_Oblique.ttf') format('truetype'), url('../font/Quicksand_Light_Oblique.svg#QuicksandLightOblique-Regular') format('svg');
+}
+
+@font-face {
+	font-family: 'QuicksandBook';
+	src: url('../font/Quicksand_Book.eot');
+	src: local('Quicksand'), local('QuicksandBook-Regular'), url('../font/Quicksand_Book.woff') format('woff'), url('../font/Quicksand_Book.ttf') format('truetype'), url('../font/Quicksand_Book.svg#QuicksandBook-Regular') format('svg');
+}
+
+@font-face {
+	font-family: 'QuicksandBookOblique';
+	src: url('../font/Quicksand_Book_Oblique.eot');
+	src: local('Quicksand'), local('QuicksandBookOblique-Regular'), url('../font/Quicksand_Book_Oblique.woff') format('woff'), url('../font/Quicksand_Book_Oblique.ttf') format('truetype'), url('../font/Quicksand_Book_Oblique.svg#QuicksandBookOblique-Regular') format('svg');
+}
+
+@font-face {
+	font-family: 'QuicksandBold';
+	src: url('../font/Quicksand_Bold.eot');
+	src: local('Quicksand'), local('QuicksandBold-Regular'), url('../font/Quicksand_Bold.woff') format('woff'), url('../font/Quicksand_Bold.ttf') format('truetype'), url('../font/Quicksand_Bold.svg#QuicksandBold-Regular') format('svg');
+}
+
+@font-face {
+	font-family: 'QuicksandBoldOblique';
+	src: url('../font/Quicksand_Bold_Oblique.eot');
+	src: local('Quicksand'), local('QuicksandBoldOblique-Regular'), url('../font/Quicksand_Bold_Oblique.woff') format('woff'), url('../font/Quicksand_Bold_Oblique.ttf') format('truetype'), url('../font/Quicksand_Bold_Oblique.svg#QuicksandBoldOblique-Regular') format('svg');
+}
+
+@font-face {
+	font-family: 'QuicksandDash';
+	src: url('../font/Quicksand_Dash.eot');
+	src: local('Quicksand'), local('QuicksandDash-Regular'), url('../font/Quicksand_Dash.woff') format('woff'), url('../font/Quicksand_Dash.ttf') format('truetype'), url('../font/Quicksand_Dash.svg#QuicksandDash-Regular') format('svg');
+}
+

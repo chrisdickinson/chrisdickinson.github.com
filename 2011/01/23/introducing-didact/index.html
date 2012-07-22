@@ -1,0 +1,126 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Introducing Didact. | NEVERSAW.US</title>
+        <link rel="stylesheet" href="/media/css/reset.css"  media="screen" type="text/css" />
+        <link rel="stylesheet" href="/media/css/style.css" media="screen" type="text/css" />
+        <script type="text/javascript" src="//use.typekit.net/hae5bpn.js"></script>
+        <script type="text/javascript">try{Typekit.load();}catch(e){}</script>
+    </head>
+    <body id="">
+
+        <header>
+          <h1 id="logo"><a href="/" rel="top">NeverSawUs</a></h1>
+        </header>
+        <div id="target"></div>
+        <div id="wrap">
+            <nav>
+            
+                
+                    <a href="/2011/01/16/not-your-fathers-javascript/" rel="prev">prev</a>
+                
+                
+  <aside>
+    <time>
+      Jan. 23, 2011
+    </time>
+  </aside>
+
+                
+            
+            </nav>
+            
+<article>
+  <h1>Introducing Didact.</h1>
+<h2>21st century show and tell.</h2>
+<p>The other day I was busily hacking away on a post that does a walkthrough on Node.js &mdash; I know, I know, I&#39;m a bit of
+a one-trick pony &mdash; but I stopped about a page in. See, I had a problem: walkthroughs are sort of a &quot;show &amp; tell&quot; experience.
+In real life, this is a fairly seamless experience: you hold up the thing you&#39;re showing, and you talk over the top of
+it, explaining how awesome it is. Most presentations boil down to this, too. There&#39;s a hiccup, however, when it comes to
+blogging. You have to do a one-two punch of &quot;Here&#39;s some code&quot; and &quot;Here&#39;s what it does&quot;, sequentially. Not to mention the
+fact that the code on your blog has to be tested and retested on it&#39;s own, in it&#39;s own environment. So the thing you&#39;re 
+showing gets transformed by the act of telling about it. Eventually, due to the universal principle of entropy, the code
+on your blog will drift out of sync with the code on your website (<a href="http://neversaw.us/2010/5/20/py-a-la-node/">as it did, unfortunately, here</a>).
+It&#39;s especially hard when you try to iterate over a piece of code several times in the same post, as you end up having to
+make sure each piece of code works on it&#39;s own and that it still all makes sense over the course of the post. And don&#39;t
+get me started on changes where you have to show more than one file! It&#39;s dreadful &mdash; really dreadful.
+
+</p>
+<p>Keeping in mind that I like to write posts with an eye towards iterating over concepts, and that I like to show examples of
+these iterations alongside my explanation of <em>why</em> I did them, an idea started to form &mdash; why not build a system to tie my
+blog posts to git repositories?
+
+</p>
+<p>Further, why not tie it to <a href="http://github.com/">Github</a>? They&#39;ve got a beautiful JSONP api that I&#39;ve been trying to find an
+excuse to use anyway. I could tie specific sections of my post to specific revisions of a repository &mdash; and using an API, show
+the relevant files (or files in a directory) that have changed. It&#39;d be great if it was hands-free, to boot; users <em>could</em> navigate
+through the repository filesystem, but it&#39;d be nice if as they scrolled past a relevant point in the post, this API would automatically
+show them exactly what I wanted to show them.
+
+</p>
+<hr>
+<h1>Which is what just happened now.</h1>
+<h2>Hopefully.</h2>
+<p>Well, isn&#39;t that a thing? As you scrolled past the header, the viewer on the left just showed you a specific file stapled to a specific
+revision. What I&#39;m showing you is part of my &quot;tempisfugit&quot; native git client for Node &mdash; sort of a side project that I&#39;d love to write
+a bit more about later. I&#39;m calling the API that I&#39;m using to present this to you <a href="http://dictionary.reference.com/browse/didactic">Didact</a>.
+It works by selecting a repository from Github that you&#39;d like to talk about, and then adding <code>data-didact</code> to specific tags throughout your
+post.
+
+</p>
+<p>They take the form:
+
+</p>
+<pre><code>&lt;h1 data-didact="8a47f966ecef391c8f42b636975472ece91c3d6e 'lib' L29">Something that triggers didact&lt;/h1></code></pre>
+<p>As you scroll past this <code>&lt;h1&gt;</code>, didact will automatically focus on that path at that revision, at those lines. Cool, huh? Users can still
+navigate through the repository on the left if they&#39;d like, so if you wanted to, say, show them a directory, that would absolutely fine.
+
+</p>
+<p>In fact, let&#39;s try it: 
+
+</p>
+<hr>
+<h1>Let&#39;s look at a directory!</h1>
+<h2>Again, hopefully.</h2>
+<p>In fact, you can show them several versions of your repository over time, by changing the commit hash or tag you&#39;re pointing at &mdash; which
+certainly sates my urge to iterate over a concept visually. 
+
+</p>
+<p>This view is looking at the tempisfugit repository at an earlier version. Scrolling back up will go back to the previous views.
+
+</p>
+<p>I&#39;ve still got to wire up line highlighting, split views, and a way to view the current file / directory as a path. Woo.
+</p>
+
+</article>
+
+
+        </div>
+
+        <footer>
+            <div>
+                <h4>Chris Dickinson&rsquo;s personal blog</h4>
+                <ul>
+                  <li><a href="/feed.xml" rel="rss">RSS</a></li>
+                  <li><a href="http://twitter.com/isntitvacant" rel="twitter">@isntitvacant</a></li>
+                  <li><a href="http://github.com/chrisdickinson" rel="github">@chrisdickinson</a></li>
+                  <li><a href="http://search.npmjs.org/#/_author/Chris%20Dickinson" rel="npm">npm</a></li>
+                  <li><a href="http://pypi.python.org/pypi?%3Aaction=search&term=chris+dickinson&submit=search" rel="pypi">pypi</a></li>
+                  <li id="copy"><p>&copy; 2012</p></li>
+                </ul>
+            </div>
+        </footer>
+
+        <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+        </script>
+        <script type="text/javascript">
+            try{
+                var pageTracker = _gat._getTracker("UA-18206985-1");
+                pageTracker._trackPageview();
+            } catch(err) {}
+        </script>
+    </body>
+</html>
+

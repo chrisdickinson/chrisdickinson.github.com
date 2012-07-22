@@ -1,0 +1,183 @@
+<!doctype html>
+<html>
+    <head>
+        <title>The Four Blind Men and the Rhino | NEVERSAW.US</title>
+        <link rel="stylesheet" href="/media/css/reset.css"  media="screen" type="text/css" />
+        <link rel="stylesheet" href="/media/css/style.css" media="screen" type="text/css" />
+        <script type="text/javascript" src="//use.typekit.net/hae5bpn.js"></script>
+        <script type="text/javascript">try{Typekit.load();}catch(e){}</script>
+    </head>
+    <body id="">
+
+        <header>
+          <h1 id="logo"><a href="/" rel="top">NeverSawUs</a></h1>
+        </header>
+        <div id="target"></div>
+        <div id="wrap">
+            <nav>
+            
+                
+                    <a href="/2010/06/07/git-thee-hence/" rel="prev">prev</a>
+                
+                
+  <aside>
+    <time>
+      July 19, 2010
+    </time>
+  </aside>
+
+                
+                    <a href="/2010/08/26/the-learning-spiral/" rel="next">next</a>
+                
+            
+            </nav>
+            
+<article>
+  <h1>The Four Blind Men and the Rhino</h1>
+<p>Imagine, if you will, a large, parliment-esque room. In it, an audience &mdash; a group of
+interested folk who long to hear the findings of four blind wise men vis a vis the
+Rhinoceros.
+
+</p>
+<p>Our actors:
+
+</p>
+<ol>
+<li>Professor Hubert J. Spidermonkey</li>
+<li>John Squirrelfish, Esquire</li>
+<li>Miss Charlotte Veeate the 3rd, Rhodes Scholar</li>
+<li>Jimmy I. Explorer, drooling idiot </li>
+</ol>
+<p>These four men have been charged with the task of examining closely the wild Rhinoceros, and
+presenting their findings in a scholarly language called &quot;ECMAScript&quot;. The audience is a fairly
+conservative set of folk, wherein lies the problem: Jimmy I. Explorer has a tendency to scream
+expletives whenever he observes something he does not understand. The other scholars have
+broad experience in the field of zoology &mdash; there&#39;s not much on a rhino that will confuse them.
+
+</p>
+<p>Jimmy&#39;s sum total of knowledge about animals, however, comes from humbler origins &mdash; a speak and
+spell.
+
+</p>
+<p>Much rides on their dissertation. If it goes poorly, the four men will be disbarred and cast out,
+and knowledge of the Rhinoceros will likely never be attained.
+
+</p>
+<hr>
+<h1>the miracle worker</h1>
+<p>Prior to the investigation, Professor Hubert J. Spidermonkey sagely suggested they hire a tutor for
+Jimmy. Their job is to take Jimmy into the field, and sign the appropriate words into Jimmy&#39;s hands
+while he touches something he doesn&#39;t understand until he stops screaming expletives and instead
+starts yelling the learned word. It adds about a month to the research time, but it&#39;s well worth it,
+by the end Jimmy has nearly the exact same vocabulary as the others.
+
+</p>
+<p>The day of the dissertation rolls around, and Jimmy steps to the podium to deliver his portion of the
+dissertation. The words come slowly, and are occasionally slurred, but his findings are accurate, despite
+the inelegance with which they are delivered. All seems well, until...
+
+</p>
+<p>Jimmy lets loose with a flurry of colorful language that could peel lacquer. Parents in the audience cover
+their children&#39;s ears, the elderly clutch their chest in the throes of expletive-induced heart attacks, and
+general chaos ensues. 
+
+</p>
+<hr>
+<h1>The Aftermath</h1>
+<p>Ms. Veeate peers over the wreckage of the podium. A chandelier falls on a newly unoccupied pew. She turns slowly
+to Prof. Spidermonkey, and pantomimes a wide-eyed &quot;What the hell, man?!&quot; Jimmy is sleeping soundly on the floor,
+and the three encircle him, intent on revealing the source of the florid language. They wake Jimmy up with a
+gentle kick, and ask him.
+
+</p>
+<p>Jimmy unravels the mystery slowly, but the gist is that another interpreter arrived after the one Prof. Spidermonkey
+hired, and undid the explanation of just one discrete piece of knowledge. Armed with this new, awful term, he singlehandedly
+ruined the dissertation.
+
+</p>
+<hr>
+<h1>The solution</h1>
+<p>John Squirrelfish posits the following solution: Instead of teaching Jimmy about the varying animal parts Jimmy might encounter,
+and opening themselves up to the possibility that some deviant may happen to undo that knowledge, they should instead wrap
+parts of the rhino in seran wrap, and teach jimmy what those pieces mean. The three intelligent scholars can easily deduce what
+lies under the seran wrap, while Jimmy will know by rote memorization what that piece means. And that evil tutor could not easily
+replace bits of Jimmy&#39;s domain knowledge of rhino parts without knowing that he&#39;ll actually encounter them wrapped in seran wrap.
+
+</p>
+<hr>
+<h1>The moral</h1>
+<p>If you hadn&#39;t guessed it yet, I&#39;m talking about Javascript &mdash; and further, I&#39;m talking about how to avoid making Internet
+Explorer choke on things it doesn&#39;t recognize.
+
+</p>
+<p>The three wise men&#39;s first approach is very similar to the following:
+
+</p>
+<pre><code><span class="keyword">if</span>(<span class="keyword">Array</span>.prototype.indexOf === undefined) {
+    <span class="keyword">Array</span>.prototype.indexOf = <span class="keyword">function</span>(needle) {
+        <span class="keyword">for</span>(<span class="keyword">var</span> i = <span class="number">0</span>, len = <span class="keyword">this</span>.length; i &lt; len; ++i) {
+            <span class="keyword">if</span>(<span class="keyword">this</span>[i] === needle) {
+                <span class="keyword">return</span> i;
+            }
+        }
+        <span class="keyword">return</span> -<span class="number">1</span>;
+    };
+}
+[<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>].indexOf(<span class="number">2</span>);</code></pre>
+<p>Which is great! Except for the fact that they&#39;re globally changing how Internet Explorer deals with <code>indexOf</code>. A better solution
+relies on all four of them agreeing to use one function instead of the default:
+
+</p>
+<pre><code><span class="keyword">var</span> indexOf = <span class="keyword">function</span> (haystack, needle) {
+    <span class="keyword">return</span> haystack.indexOf(needle);
+}; 
+<span class="keyword">if</span>(<span class="keyword">Array</span>.prototype.indexOf === undefined) {
+    indexOf = <span class="keyword">function</span>(haystack, needle) {
+        <span class="keyword">for</span>(<span class="keyword">var</span> i = <span class="number">0</span>, len = haystack.length; i &lt; len; ++i) {
+            <span class="keyword">if</span>(haystack[i] === needle) {
+                <span class="keyword">return</span> i;
+            }
+        }
+        <span class="keyword">return</span> -<span class="number">1</span>;
+    }
+}
+indexOf([<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>], <span class="number">2</span>);</code></pre>
+<p>This way, no one is trampling on the global Array.prototype.indexOf.
+
+</p>
+<p>The End.
+Thanks.
+</p>
+
+</article>
+
+
+        </div>
+
+        <footer>
+            <div>
+                <h4>Chris Dickinson&rsquo;s personal blog</h4>
+                <ul>
+                  <li><a href="/feed.xml" rel="rss">RSS</a></li>
+                  <li><a href="http://twitter.com/isntitvacant" rel="twitter">@isntitvacant</a></li>
+                  <li><a href="http://github.com/chrisdickinson" rel="github">@chrisdickinson</a></li>
+                  <li><a href="http://search.npmjs.org/#/_author/Chris%20Dickinson" rel="npm">npm</a></li>
+                  <li><a href="http://pypi.python.org/pypi?%3Aaction=search&term=chris+dickinson&submit=search" rel="pypi">pypi</a></li>
+                  <li id="copy"><p>&copy; 2012</p></li>
+                </ul>
+            </div>
+        </footer>
+
+        <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+        </script>
+        <script type="text/javascript">
+            try{
+                var pageTracker = _gat._getTracker("UA-18206985-1");
+                pageTracker._trackPageview();
+            } catch(err) {}
+        </script>
+    </body>
+</html>
+

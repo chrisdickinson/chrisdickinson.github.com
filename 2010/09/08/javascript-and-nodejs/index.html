@@ -1,0 +1,336 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Javascript and Node.js | NEVERSAW.US</title>
+        <link rel="stylesheet" href="/media/css/reset.css"  media="screen" type="text/css" />
+        <link rel="stylesheet" href="/media/css/style.css" media="screen" type="text/css" />
+        <script type="text/javascript" src="//use.typekit.net/hae5bpn.js"></script>
+        <script type="text/javascript">try{Typekit.load();}catch(e){}</script>
+    </head>
+    <body id="">
+
+        <header>
+          <h1 id="logo"><a href="/" rel="top">NeverSawUs</a></h1>
+        </header>
+        <div id="target"></div>
+        <div id="wrap">
+            <nav>
+            
+                
+                    <a href="/2010/09/07/javascript/" rel="prev">prev</a>
+                
+                
+  <aside>
+    <time>
+      Sept. 8, 2010
+    </time>
+  </aside>
+
+                
+                    <a href="/2011/01/16/not-your-fathers-javascript/" rel="next">next</a>
+                
+            
+            </nav>
+            
+<article>
+  <h1>Javascript and Node.js</h1>
+<h2>Gotchas</h2>
+<p><a href="http://neversaw.us/2010/9/7/javascript-the-magic-parts/">Yesterday</a> I wrote a post about the
+two parts of Javascript that I considered magical. I wrote it in the hopes that newcomers to the
+language would be able to grasp the two hardest parts by comparing it to languages they were
+already familiar with (PHP, Python). Unfortunately I took a bit of an exasperated tone in that
+post, mainly because I had been seeing so much discourse on either side of the topic of Node.js
+and Javascript that felt like it was missing some integral points about the language.
+
+</p>
+<p>To sum up yesterday&#39;s post:
+
+</p>
+<ol>
+<li>Closures aren&#39;t what make Javascript special.</li>
+<li>Neither is the idea that you can run the same code on the browser as on the server.</li>
+<li>Event based programming is one of the things that makes Javascript special, as it&#39;s so suited to it.</li>
+<li>The tremendous effort being expended on making Javascript faster (by browser vendors) makes Javascript exciting.</li>
+<li>That there are numerous opportunities to contribute make javascript fun, especially in the context of Node.js.</li>
+</ol>
+<p>As for the magic parts I had initially tried to cover:
+
+</p>
+<ol>
+<li>Javascript closures never close over <code>this</code>.</li>
+<li>Javascript prototypes are strange at first, but ultimately you can relate them to Classes in Python.</li>
+</ol>
+<p>The last point drew a bit of flak, and I&#39;ll admit that prototypical inheritance based languages are
+formally different from classical object inheritance. However, I think it did some good to compare them --
+after all, classes in Python are objects too (<code>type</code> objects, to be specific), and regardless of the
+sugar of the language, Javascript objects using prototypes and Python objects share a lot of similarities.
+
+</p>
+<p>Also I&#39;d like to apologize if the previous post came off as a rant &mdash; that was a failing on my part --
+my goal is to hopefully inform and entertain (and get people interested in the weird things that I am
+interested in! Go meme propagation!)
+
+</p>
+<p>I&#39;d like to follow on the heels of yesterday&#39;s post with a quick overview of some Javascript gotchas:
+some I glossed over yesterday, and some that came up last night as I was helping a friend debug some
+JS.
+
+</p>
+<hr>
+<h1>Write Once, Run Anywhere</h1>
+<h2>...Is more painful than it seems</h2>
+<p>The first point I&#39;d like to go over is something I mentioned really briefly yesterday:
+
+</p>
+<blockquote>
+<p>Javascript is a different language in Webkit, IE, and Firefox.
+
+</p>
+</blockquote>
+<p>Not to leave Opera out of the picture, of course. There&#39;s a sense that the only thing that really differs
+between the different implementations of Javascript is the DOM API. True, but the standard library varies
+wildly between the implementations, as does the syntax. 
+
+</p>
+<p><strong>So what&#39;s the takeaway here?</strong> Well, if your library doesn&#39;t need to run in the browser, then by all means,
+write it using the subset of Javascript that V8 and Firefox are okay with. For example, let&#39;s make a set
+out of the properties of two objects.
+
+</p>
+<pre><code><span class="keyword">var</span> getKeys = <span class="keyword">function</span>(obj1, obj2) {
+    <span class="keyword">var</span> set = [];
+    <span class="keyword">var</span> properties = Object.keys(obj1);
+    properties.concat(Object.keys(obj2));
+    properties.<span class="keyword">forEach</span>(<span class="keyword">function</span>(item) {
+        <span class="keyword">if</span>(set.indexOf(item) === -<span class="number">1</span>) {
+            set.push(item);
+        }
+    });
+    <span class="keyword">return</span> item;
+}</code></pre>
+<p>And for fun, let&#39;s compare that to what you have to write to make it cross browser compatible:
+
+</p>
+<pre><code><span class="keyword">var</span> getKeys = <span class="keyword">function</span>(obj1, obj2) {
+    <span class="keyword">var</span> properties = [],
+        indexOf = <span class="keyword">Array</span>.prototype.indexOf ? <span class="keyword">function</span>(arr, needle) {
+            <span class="keyword">return</span> arr.indexOf(needle);
+        } : <span class="keyword">function</span>(arr, needle) {
+            <span class="keyword">for</span>(<span class="keyword">var</span> i = <span class="number">0</span>, len = arr.length; i &lt; len; ++i) {
+                <span class="keyword">if</span>(arr[i] === needle) {
+                    <span class="keyword">return</span> i;
+                }
+            }
+            <span class="keyword">return</span> -<span class="number">1</span>;
+        },
+        name;
+    <span class="keyword">for</span>(name in obj1) <span class="keyword">if</span>(obj1.hasOwnProperty(name)) {
+        <span class="keyword">if</span>(indexOf(properties, name) === -<span class="number">1</span>) {
+            properties.push(name);
+        }
+    } 
+    <span class="keyword">for</span>(name in obj2) <span class="keyword">if</span>(obj2.hasOwnProperty(name)) {
+        <span class="keyword">if</span>(indexOf(properties, name) === -<span class="number">1</span>) {
+            properties.push(name);
+        }
+    }
+    <span class="keyword">return</span> properties;
+}; </code></pre>
+<p>We can&#39;t use <code>Object.keys</code>, we have to make a guard for <code>Array.indexOf</code>, and all around chaos ensues. Now,
+this could be refactored to be prettier, certainly. But it stands as a pretty good example of the expansion
+of the code you have to write to get things to work correctly cross browser. Also, remember that string handling
+in IE is crummy &mdash; you cannot index a string using <code>string[index]</code> notation, you <em>must</em> use <code>string.charAt(index)</code>.
+If you forget, your punishment is a cryptic error message. Also, if you accidentally leave a trailing comma in an
+object literal, the code won&#39;t even compile.
+
+</p>
+<p>So, when you can &mdash; and if you&#39;re writing for Node.js, you often can &mdash; try to limit yourself down to the subset
+of Javascript that V8 supports. If you can&#39;t do that &mdash; well, you really have to be cognizant of the fact that you&#39;re
+no longer writing modern Javascript, you <em>have</em> to target the lowest common denominator. To really appreciate how
+weird ECMAScript can be in practice, read through <a href="http://wiki.ecmascript.org/lib/exe/fetch.php?id=resources%3Aresources&amp;cache=cache&amp;media=resources:jscriptdeviationsfromes3.pdf">this pdf</a>.
+It&#39;s a Microsoft-compiled list of divergences from ECMAScript 3 across the major browsers (unfortunately, excluding
+Chrome).
+
+</p>
+<hr>
+<h1>Where does that error go?</h1>
+<h2>A really brief synopsis of how Node.js deals with errors</h2>
+<p>This part is a bit more specific to Node.js. One of the biggest problems I&#39;ve had thus far is exception handling.
+Coming from Python, where Exceptions are king, you&#39;d think this wouldn&#39;t pose a problem for me &mdash; but it&#39;s not
+the concept that gets me, it&#39;s the fact that when you throw an <code>Error</code> inside of a callback, depending on where
+that callback got called, that Exception can travel two very different routes.
+
+</p>
+<p>Exceptions will always fly back up the stack until they are caught, or they reach the end of the stack. That&#39;s where
+things get a little bizarre, in Node.js. Consider the following:
+
+</p>
+<pre><code><span class="keyword">try</span> { 
+    doSomething(<span class="keyword">function</span>(err, result) {
+        <span class="keyword">if</span>(err) {
+            <span class="keyword">throw</span> err;
+        }
+    });
+} <span class="keyword">catch</span>(err) {
+    console.log(err);
+}</code></pre>
+<p>Now, where does <code>err</code> get caught? Well, the answer depends on what <code>doSomething</code> does. If <code>doSomething</code> looks like
+the following:
+
+</p>
+<pre><code><span class="keyword">var</span> doSomething = <span class="keyword">function</span>(callback) {
+    callback(<span class="keyword">new</span> Error(), <span class="string">"some value"</span>);
+};</code></pre>
+<p>It gets caught, as expected, in the wrapping <code>try / catch</code> block. However, if <code>doSomething</code> looks like this:
+
+</p>
+<pre><code><span class="keyword">var</span> doSomething = <span class="keyword">function</span>(callback) {
+    <span class="keyword">var</span> fs = <span class="keyword">require</span>(<span class="string">'fs'</span>);
+    fs.readFile(<span class="string">'./test.txt'</span>, <span class="keyword">function</span>(err, objects) {
+        callback(err, objects);
+    });
+};</code></pre>
+<p>The wrapping <code>try / catch</code> block does not catch the thrown <code>err</code>. Why? Because that stack has already completed &mdash; the
+event loop in Node has a new stack, beginning with the results of <code>fs.readFile</code>. Any error thrown in that stack will
+bubble up that stack independent of the code calling <code>doSomething</code>. This is a major point of consternation for those
+not familiar with this behavior &mdash; but giving a minute of thought, it begins to make sense. You can&#39;t return to the 
+calling stack; that code has already run. 
+
+</p>
+<hr>
+<h1>Designing around callbacks</h1>
+<h2>A rule of thumb</h2>
+<p>The final gotcha I&#39;d like to address involves designing Javascript APIs. I haven&#39;t seen this <em>too</em> often, but it bears
+mentioning: Any API you design that leverages another library that takes callbacks <em>must</em> somehow reflect this in your
+public API. There aren&#39;t safe ways to avoid it &mdash; in glossing over it, you are intentionally introducing a race condition.
+
+</p>
+<p>So, for instance, I want to create a phone book API:
+
+</p>
+<pre><code><span class="keyword">var</span> PhoneBook = <span class="keyword">function</span>(bookFile) {
+    <span class="keyword">this</span>.bookFile = bookFile;
+};
+
+PhoneBook.prototype.load = <span class="keyword">function</span>() {
+    <span class="keyword">var</span> fs = <span class="keyword">require</span>(<span class="string">'fs'</span>),
+        <span class="keyword">self</span> = <span class="keyword">this</span>;
+    <span class="keyword">try</span> {
+        fs.readFile(<span class="keyword">this</span>.bookFile, <span class="keyword">function</span>(err, data) {
+            <span class="keyword">if</span>(err) <span class="keyword">throw</span> err;
+            <span class="keyword">self</span>.data = data.split(<span class="string">'\n'</span>);
+        });
+    } <span class="keyword">catch</span>(err) {
+        <span class="keyword">self</span>.data = <span class="keyword">null</span>;
+    }
+    <span class="keyword">return</span> <span class="keyword">self</span>.data;
+};</code></pre>
+<p>This code won&#39;t work. The race condition introduced is as follows: I call readFile with a callback. That callback will not
+execute until my currently running stack is exhausted. However, I attempt to return <code>self.data</code> immediately after calling
+<code>fs.readFile</code> &mdash; it will be <code>undefined</code>. <em>Gulp.</em> Even worse, if there&#39;s an error thrown in that callback &mdash; as we discussed
+in the last section &mdash; it will bubble up to the top of the stack and become an uncaught exception, ending my program.
+
+</p>
+<p>There are two solutions &mdash; both reflect the necessary inversion of control that comes with using async callbacks in Node.
+
+</p>
+<p>The first solution is to simply make my <code>load</code> method take a callback:
+
+</p>
+<pre><code>PhoneBook.prototype.load = <span class="keyword">function</span>(callback) {
+    <span class="keyword">var</span> fs = <span class="keyword">require</span>(<span class="string">'fs'</span>),
+        <span class="keyword">self</span> = <span class="keyword">this</span>;
+    fs.readFile(<span class="keyword">this</span>.bookFile, <span class="keyword">function</span>(err, data) {
+        <span class="keyword">if</span>(!err) {
+            <span class="keyword">self</span>.data = data.split(<span class="string">'\n'</span>);
+        }
+        callback(err, <span class="keyword">self</span>);
+    });
+};</code></pre>
+<p>Now when my <code>PhoneBook</code> is ready (or errored out) it will pass control back to my callback function, with any errors and a copy
+of the fully-populated <code>PhoneBook</code>.
+
+</p>
+<p>The other solution &mdash; which I&#39;ll admit, I haven&#39;t used quite as often &mdash; is to turn <code>PhoneBook</code> into an <code>EventEmitter</code>.
+
+</p>
+<pre><code><span class="keyword">var</span> events = <span class="keyword">require</span>(<span class="string">'events'</span>),
+    sys = <span class="keyword">require</span>(<span class="string">'sys'</span>);
+<span class="keyword">var</span> PhoneBook = <span class="keyword">function</span>(bookFile) {
+    <span class="keyword">var</span> fs = <span class="keyword">require</span>(<span class="string">'fs'</span>),
+        <span class="keyword">self</span> = <span class="keyword">this</span>;
+
+    events.EventEmitter.call(<span class="keyword">this</span>);
+
+    fs.readFile(<span class="keyword">this</span>.bookFile, <span class="keyword">function</span>(err, data) {
+        <span class="keyword">if</span>(err) {
+            <span class="keyword">self</span>.emit(<span class="string">'error'</span>, err);
+        } <span class="keyword">else</span> {
+            <span class="keyword">self</span>.emit(<span class="string">'data'</span>, data.split(<span class="string">'\n'</span>));
+        } 
+    });
+};
+sys.inherits(PhoneBook, events.EventEmitter);</code></pre>
+<p>Now clients using PhoneBook can listen for errors and success by attaching to an instance of phonebook like so:
+
+</p>
+<pre><code><span class="keyword">var</span> pb = <span class="keyword">new</span> PhoneBook(<span class="string">'asdf.txt'</span>);
+pb.on(<span class="string">'error'</span>, <span class="keyword">function</span>(error) {
+    console.log(error);
+});
+pb.on(<span class="string">'data'</span>, <span class="keyword">function</span>(data) {
+    console.log(data);
+});</code></pre>
+<p>Which works out quite nicely. Both are valid methods of preserving the inversion of control through your library.
+Remember &mdash; if you so much as <em>think</em> that some method of your library will use code that takes a callback, you
+<em>must</em> work that inversion of control up through the public API.
+<small>disclaimer: feel free to prove me wrong on this one, but as far as I&#39;ve seen, it&#39;s true.</small>
+
+</p>
+<hr>
+<h1>thar be dragons</h1>
+<h2>really awesome dragons. like, with shades.</h2>
+<p>Summing up, you should have these things in mind when you start our writing a Javascript library (especially for Node): 
+
+</p>
+<ol>
+<li>Does it <em>really</em> need to work in the browser, or can I target Node.js or Rhino and use modern Javascript? </li>
+<li>Pay attention to the stack &mdash; never take for granted that a callback will be run within the same stack. Throwing errors within callbacks is not such a great idea unless you <em>know</em> where you&#39;re throwing it to.</li>
+<li>Do the mental gymnastics of figuring out what parts of your library are blocking ahead of time, so you know where to expose that inversion of control in your public API.</li>
+</ol>
+<p>There are other little bits to watch out for, of course (my personal favorite being <code>&quot;asdf asdf&quot;.replace(&quot;asdf&quot;, &#39;&#39;)</code> will only replace the first instance of &quot;asdf&quot;, that always bites me &mdash; use <code>replace(/asdf/g, &#39;&#39;)</code> instead); but if you can keep these things in mind while writing your library, you should generally be okay.
+
+</p>
+
+</article>
+
+
+        </div>
+
+        <footer>
+            <div>
+                <h4>Chris Dickinson&rsquo;s personal blog</h4>
+                <ul>
+                  <li><a href="/feed.xml" rel="rss">RSS</a></li>
+                  <li><a href="http://twitter.com/isntitvacant" rel="twitter">@isntitvacant</a></li>
+                  <li><a href="http://github.com/chrisdickinson" rel="github">@chrisdickinson</a></li>
+                  <li><a href="http://search.npmjs.org/#/_author/Chris%20Dickinson" rel="npm">npm</a></li>
+                  <li><a href="http://pypi.python.org/pypi?%3Aaction=search&term=chris+dickinson&submit=search" rel="pypi">pypi</a></li>
+                  <li id="copy"><p>&copy; 2012</p></li>
+                </ul>
+            </div>
+        </footer>
+
+        <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+        </script>
+        <script type="text/javascript">
+            try{
+                var pageTracker = _gat._getTracker("UA-18206985-1");
+                pageTracker._trackPageview();
+            } catch(err) {}
+        </script>
+    </body>
+</html>
+

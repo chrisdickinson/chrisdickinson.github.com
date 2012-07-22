@@ -1,0 +1,118 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Git thee hence. | NEVERSAW.US</title>
+        <link rel="stylesheet" href="/media/css/reset.css"  media="screen" type="text/css" />
+        <link rel="stylesheet" href="/media/css/style.css" media="screen" type="text/css" />
+        <script type="text/javascript" src="//use.typekit.net/hae5bpn.js"></script>
+        <script type="text/javascript">try{Typekit.load();}catch(e){}</script>
+    </head>
+    <body id="">
+
+        <header>
+          <h1 id="logo"><a href="/" rel="top">NeverSawUs</a></h1>
+        </header>
+        <div id="target"></div>
+        <div id="wrap">
+            <nav>
+            
+                
+                    <a href="/2010/05/20/py-a-la-node/" rel="prev">prev</a>
+                
+                
+  <aside>
+    <time>
+      June 7, 2010
+    </time>
+  </aside>
+
+                
+                    <a href="/2010/07/19/the-four-blind-men-and-the-rhino/" rel="next">next</a>
+                
+            
+            </nav>
+            
+<article>
+  <h1>Git thee hence.</h1>
+<h2>Sugar-sweet git repository management with nappingcat and thundercat</h2>
+<object width="600" height="400"><param name="allowfullscreen" value="true" /><param name="allowscriptaccess" value="always" /><param name="movie" value="http://vimeo.com/moogaloop.swf?clip_id=12407383&amp;server=vimeo.com&amp;show_title=1&amp;show_byline=1&amp;show_portrait=0&amp;color=&amp;fullscreen=1" /><embed src="http://vimeo.com/moogaloop.swf?clip_id=12407383&amp;server=vimeo.com&amp;show_title=1&amp;show_byline=1&amp;show_portrait=0&amp;color=&amp;fullscreen=1" type="application/x-shockwave-flash" allowfullscreen="true" allowscriptaccess="always" width="600" height="350"></embed></object>
+
+<p>It&#39;s been a long while since I posted about <a href="http://neversaw.us/2010/4/16/on-cats-and-git/">nappingcat</a>, and
+since that post at least a fair amount has changed &mdash; hopefully, I think, for the better.
+
+</p>
+<p>For one, the installation has been simplified to the following:
+
+</p>
+<pre><code>pip install nappingcat
+useradd -m -U -r -s/bin/bash git
+sudo su git
+nappingcat_initconf         <span class="comment"># generates a super basic configuration file in ~git/nappingcat.conf</span>
+cat id_rsa.pub > nappingcat_createsuperuser admin   <span class="comment"># create a superuser for nappingcat</span></code></pre>
+<p>And on the client side, things are coming up roses:
+
+</p>
+<pre><code>pip install thundercat
+thundercat addremote &lt;nickname> &lt;git@remoteurl.com>
+thundercat &lt;nickname> add_permission admin kittygit create</code></pre>
+<p>And suddenly you&#39;re off to the races!
+
+</p>
+<hr>
+<h1>But wait! there&#39;s more.</h1>
+<h2>But only a little bit more.</h2>
+<p>At this point you&#39;re set up to use nappingcat as your private repo administration system. Say you have
+a friend, though, who has installed <code>thundercat</code> on their system, and wants to collaborate on your
+awesome new evil death ray scheme. Well, let&#39;s take a look:
+
+</p>
+<pre><code><span class="comment"># on your computer</span>
+cd deathrayproject
+thundercat myserver create_repo deathray
+<span class="keyword">Do</span> you want to add a remote [Y/y/N/n]? Y
+git push myserver master
+thundercat add_user friend
+thundercat add_key_to_user friend friends_id_rsa.pub
+thundercat add_permission friend kittygit read admin/deathray</code></pre>
+<p>Tell your friend to add your nappingcat url to his thundercat:
+
+</p>
+<pre><code><span class="comment"># on his computer:</span>
+thundercat addremote &lt;nickname> git@nappingcat.url
+thundercat &lt;nickname> fork_repo chris/deathray
+git <span class="keyword">clone</span> git@nappingcat.url:friend/deathray.git</code></pre>
+<p>And now he has a lovely little fork of your project!
+</p>
+
+</article>
+
+
+        </div>
+
+        <footer>
+            <div>
+                <h4>Chris Dickinson&rsquo;s personal blog</h4>
+                <ul>
+                  <li><a href="/feed.xml" rel="rss">RSS</a></li>
+                  <li><a href="http://twitter.com/isntitvacant" rel="twitter">@isntitvacant</a></li>
+                  <li><a href="http://github.com/chrisdickinson" rel="github">@chrisdickinson</a></li>
+                  <li><a href="http://search.npmjs.org/#/_author/Chris%20Dickinson" rel="npm">npm</a></li>
+                  <li><a href="http://pypi.python.org/pypi?%3Aaction=search&term=chris+dickinson&submit=search" rel="pypi">pypi</a></li>
+                  <li id="copy"><p>&copy; 2012</p></li>
+                </ul>
+            </div>
+        </footer>
+
+        <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+        </script>
+        <script type="text/javascript">
+            try{
+                var pageTracker = _gat._getTracker("UA-18206985-1");
+                pageTracker._trackPageview();
+            } catch(err) {}
+        </script>
+    </body>
+</html>
+

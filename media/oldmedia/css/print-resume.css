@@ -1,0 +1,40 @@
+html,
+body        { font-family: "Berthold Akzidenz Grotesk BE", "Helvetica Neue", "Helvetica", sans-serif; font-size:16px; }
+
+body div, 
+body blockquote, 
+body p, 
+body fieldset, 
+fieldset legend,
+body ul,
+body dl,
+body dl dt,
+body dl dd,
+body ul li      { border:none; margin:0px; padding:0px; list-style:none; }
+
+body            { text-align:center; }
+body article    { text-align:left; width:960px; margin:0pt auto; display:block; }
+
+fieldset        { display:inline-block; width:228px; vertical-align:top; }
+fieldset legend { display:block; font-weight:bold; padding-bottom:18px; width:228px; }
+fieldset p,
+fieldset li     { font-size:0.8em; }
+fieldset p      { margin-bottom:2px; }
+fieldset p + p  { margin-bottom:16px; }
+body fieldset li{ list-style:outside disc; margin-left:1.0em; margin-right:2.0em; margin-bottom:16px; }
+
+#references,
+#employment     { clear:left; width:464px; margin-right:16px; float:left; } 
+section         { overflow:hidden; display:block; width:464px; }
+h2              { border-bottom:1px solid black; }
+
+#employment fieldset { margin-bottom:18px; }
+
+body section ul li      { margin-left:1.0em; list-style: outside disc; margin-bottom:8px; font-size:0.8em; }
+body section dd,
+body section dt a       { font-size:0.8em; }
+body section dt         { display:block; width:120px; height:30px; }
+body section dd         { display:block; margin-left:136px; width:328px; margin-top:-30px; margin-bottom:18px;}
+
+
+#employment fieldset + fieldset + fieldset +fieldset + fieldset { display:none; }

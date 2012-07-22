@@ -1,0 +1,845 @@
+
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Getting Socratic with JavaScript</title>
+
+    <link href='http://fonts.googleapis.com/css?family=Lato:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+
+    <link rel="stylesheet" href="reveal.js/css/reset.css">
+    <link rel="stylesheet" href="reveal.js/css/main.css">
+    <link rel="stylesheet" href="reveal.js/css/print.css" type="text/css" media="print">
+
+    <link rel="stylesheet" href="reveal.js/lib/zenburn.css">
+</head>
+<body>
+    <div id="reveal" class="reveal">
+      <div class="slides">
+        
+          <section class="slide" data-state="01-title">
+            <h3>Getting Socratic With</h3>
+<h1>JavaScript</h1>
+<h4>with chris dickinson</h4>
+
+          </section>
+        
+          <section class="slide" data-state="02-sucks">
+            <p><h3 class="fragment visible">JavaScript Sucks</h1>
+</p>
+<p><h3 class="fragment"><del>JavaScript</del> Ruby Sucks</h1>
+</p>
+<p><h3 class="fragment"><del>Ruby</del> Python Sucks</h1>
+</p>
+
+          </section>
+        
+          <section class="slide" data-state="03-tools">
+            <h4>Elegant tools become inelegant&hellip;</h4>
+<h3>when they&#39;re used incorrectly.</h3>
+<p class="fragment">
+Before judging a tool, we should try to understand it.
+</p>
+<p class="fragment">
+It&#39;s as easy as asking the right questions.
+</p>
+<p class="fragment">
+I&#39;d like to explore why JS is the way it is.
+</p>
+<p class="fragment">
+&hellip;but first, we have to ask the most important
+question of all.
+</p>
+
+          </section>
+        
+          <section class="slide" data-state="03-why">
+            <h2>Why do I care?</h2>
+<ul>
+<li>Because you&#39;re a web developer.</li>
+<li>You&#39;re a custodian of the web.</li>
+<li>JavaScript is a huge part of the web.
+<br />
+<br />
+<br /><h3 class="fragment">
+We owe it to ourselves to understand it,
+</h3>
+<h3 class="fragment">
+before we simply write it off as a toy language.
+</h3>
+</li>
+</ul>
+
+          </section>
+        
+          <section class="slide" data-state="04-what">
+            <h2>What is JavaScript?</h2>
+<ul>
+<li>It&#39;s designed to handle events on an HTML document.</li>
+<li>It&#39;s designed to be forgiving to non-experts.
+<br /><br /><br /><h3 class="fragment">
+  Wait, wat?
+</h3>
+</li>
+</ul>
+
+          </section>
+        
+          <section class="slide" data-state="05-wat">
+            <h3>wat?</h3>
+<div class="fragment">
+<pre><code>&gt; {} + {}
+&quot;[object Object][object Object]&quot;
+</code></pre>
+</div><div class="fragment">
+<pre><code>&gt; Array(10).join(NaN)
+&quot;NaNNaNNaNNaNNaNNaNNaNNaNNaN&quot;
+</code></pre>
+</div><div class="fragment">
+<pre><code>&gt; 3 + &quot;3&quot;
+&quot;33&quot;
+</code></pre>
+</div>
+
+<p><br/ ><br />
+
+</p>
+<h4 class="fragment">
+oh yeah, that seems helpful.
+</h4>
+
+
+
+
+          </section>
+        
+          <section class="slide" data-state="06-type-coercion">
+            <h3>what is type coercion?</h3>
+<p>When the type of the operation doesn&#39;t match the type of the variable it&#39;s operating on, we have to coerce.
+
+</p>
+<p>JavaScript&#39;s type coercion seems wacky at first glance.
+
+</p>
+<ul>
+<li>number + string = string?</li>
+<li>object + object = string?</li>
+<li>array of things joined by a number = string?</li>
+</ul>
+<div class="fragment">
+Seems to really like strings when it coerces types.
+</div>
+
+          </section>
+        
+          <section class="slide" data-state="07-types">
+            <h2>What are the types in JavaScript?</h2>
+<p>Usually, folk start listing off all the myriad types
+about right now.
+</p>
+<ul class="fragment">
+
+<ul>
+<li>functions</li>
+<li>booleans</li>
+<li>strings</li>
+<li>numbers</li>
+<li>objects</li>
+<li>arrays</li>
+</ul>
+<p></ul>
+</p>
+<div class="fragment">
+    In reality, there&#39;s only two.
+</div>
+
+          </section>
+        
+          <section class="slide" data-state="08-types-two">
+            <h2>There are two types!</h2>
+<p><img src="http://images35.fotki.com/v1167/photos/1/1317618/6073030/roflbot-vi.jpg" alt="four lights">
+</p>
+
+          </section>
+        
+          <section class="slide" data-state="09-types-three">
+            <h4>there are...</h4>
+<h1 class="fragment">{objects}</h1>
+<h3 class="fragment"><small>and</small></h4>
+<h1 class="fragment">&quot;primitives&quot;</h1>
+
+          </section>
+        
+          <section class="slide" data-state="10-types-object">
+            <h3>{objects}</h3>
+<ul>
+<li>have attributes that can be looked up</li>
+</ul>
+<pre><code>    obj.attribute
+    obj[attribute]
+</code></pre>
+
+<ul>
+<li>have prototype chains</li>
+</ul>
+<pre><code>    obj2 = Object.create({thing:2})
+    obj2.thing
+</code></pre>
+
+<li class="fragment">
+    <strong>
+        These are the only two operations
+        that can be performed on objects!
+    </strong>
+</li>
+
+          </section>
+        
+          <section class="slide" data-state="11-types-primitive">
+            <h3>&quot;primitives&quot;</h3>
+<ul>
+<li><p>Have a value, nothing more</p>
+</li>
+<li><p>Can be used with &quot;math-y&quot; operators</p>
+<pre><code>  a + b
+  a * b
+  +a
+</code></pre>
+</li>
+<li><p>Can be used with statements expecting a value</p>
+</li>
+</ul>
+<pre><code>    if(a) {}
+    for(a; b; c) {}
+</code></pre>
+
+          </section>
+        
+          <section class="slide" data-state="12-type-mix">
+            <h3>What happens when they mix?</h3>
+<p>When a object tries to act like a
+primitive...
+
+</p>
+<p>Or a primitive tries to act like an
+object...
+
+</p>
+<h2 class="fragment">
+    They coerce!
+</h2>
+
+
+          </section>
+        
+          <section class="slide" data-state="13-type-primitive-to-object">
+            <h3>&quot;primitives&quot;</h3>
+<ul>
+<li>create a temporary object wrapping their value</li>
+<li>they look up a function constructor corresponding to their value</li>
+<li>and instantiate it with themselves as the first argument</li>
+</ul>
+<pre><code>
+    "asdf".slice()
+    new String("asdf").slice()
+
+    true.valueOf()
+    new Boolean(true).valueOf()
+
+    12.0.toFixed(2)
+    new Number(12.0).toFixed(2)
+</code></pre>
+
+<div class="fragment">
+    this intermediary object is immediately
+    trashed after the lookup.
+</div>
+
+          </section>
+        
+          <section class="slide" data-state="14-type-object-primitive">
+            <h3>{objects}</h3>
+<ul>
+<li><p>first, they attempt to get a primitive value using <code>obj.valueOf()</code>.</p>
+</li>
+<li><p>if <code>valueOf</code> doesn&#39;t exist (or doesn&#39;t return a primitive) they use <code>obj.toString()</code>.</p>
+</li>
+<li><p>if neither of these two methods exist (or both return invalid values) an exception is raised.</p>
+</li>
+</ul>
+<h2 class="fragment reversed"><small>We&#39;ll get back to that exception thing in a bit.</small></h2>
+
+          </section>
+        
+          <section class="slide" data-state="15-so-why-strings">
+            <h3>So why so many strings?</h3>
+<p>Unless you&#39;re explicit, JavaScript assumes you want a string.
+
+</p>
+<ul>
+<li>Not its fault!</li>
+<li>Not a bad assumption.</li>
+<li>You are working within the context of a giant HTML document, aren&#39;t you?</li>
+<li>Aren&#39;t most things you&#39;re doing in there going to be working with strings?</li>
+</ul>
+
+          </section>
+        
+          <section class="slide" data-state="16-why-not-an-exception">
+            <h3>Why not exceptions?</h3>
+<p>Why not throw an exception when the types don&#39;t match?
+
+</p>
+<ul>
+<li>JavaScript avoids exceptions like the plague</li>
+<li>We&#39;ll touch on this again in a little bit</li>
+<li>But, it&#39;s the source of another question...</li>
+</ul>
+
+          </section>
+        
+          <section class="slide" data-state="17-a-tale-of-two-nils">
+            <h3>A tale of two</h3>
+<h1>NILS</h1>
+<div class="fragment">
+    the story of
+    <h1>undefined</h1>
+    and
+    <h1>null</h1>
+</div>
+
+          </section>
+        
+          <section class="slide" data-state="18-undefined-null">
+            <h3>Nils</h3>
+<p>Why two nils?
+
+</p>
+<p>JavaScript has <code>undefined</code> and <code>null</code> in
+an effort to avoid throwing exceptions (think
+<code>AttributeError</code>s in Python).
+</p>
+
+          </section>
+        
+          <section class="slide" data-state="19-undefined">
+            <h3>undefined</h3>
+<p>Undefined happens when a variable that hasn&#39;t
+been initialized to a value is accessed, or when
+an attribute that doesn&#39;t exist on an object is accessed.
+
+</p>
+<pre><code>console.log(a);
+var a = 3;</code></pre>
+
+<pre><code>({a:3}).something</code></pre>
+
+
+          </section>
+        
+          <section class="slide" data-state="20-null">
+            <h3>null</h3>
+<p>Since <code>undefined</code> means both <code>nil</code> <em>and</em> &quot;not yet defined&quot;, JavaScript provides <code>null</code> to mean &quot;just nil&quot;.
+
+</p>
+<p>Fun fact: you can think of <code>undefined</code> and <code>null</code> as objects that have <code>__getattr__</code> methods that simply raise an exception!
+
+</p>
+<pre><code>typeof null == 'object'</code></pre>
+
+          </section>
+        
+          <section class="slide" data-state="21-okay-so-nil">
+            <h3>Why Does JS Hate Exceptions?</h3>
+<p>Okay, so we&#39;ve seen a couple different examples of the fact that JS goes out of its way to avoid exceptions.
+
+</p>
+<p>Why?
+
+</p>
+<ul>
+<li class=fragment>
+    Rough childhood?
+</li>
+<li class=fragment>
+    Designed for beginners?
+</li>
+<li class=fragment>
+    Baked in event loop?
+    <strong class=fragment>Bingo!</strong>
+</li>
+</ul>
+
+          </section>
+        
+          <section class="slide" data-state="22-exceptions">
+            <h3>Exceptions</h3>
+<p>JavaScript avoids exceptions since most times, they won&#39;t
+bubble up to a <code>try / catch</code> statement!
+<br />
+</p>
+<ul>
+<li class="fragment">
+    JavaScript has an event loop baked right in to its flaky crust.
+</li>
+<li class="fragment">
+    Most languages don&#39;t have this as a language-level concept.
+</li>
+<li class="fragment">
+    So why does JavaScript?
+</li>
+</ul>
+
+          </section>
+        
+          <section class="slide" data-state="23-event-loop">
+            <h3>Because it&#39;s designed to handle</h3>
+<h1>Events</h1>
+<h3>in a HTML document!</h3>
+
+          </section>
+        
+          <section class="slide" data-state="24-event-loop-2">
+            <h3>Events</h3>
+<ul>
+<li>Because of this, JavaScript necessarily has to deal with temporal concepts</li>
+<li>Not just &quot;in which order will this execute&quot;, but &quot;<strong>when</strong> will this execute?&quot;</li>
+<li>But JavaScript is single threaded -- only one path of execution (or stack)
+is active at any given time.</li>
+<li>So a given stack can block the entire loop until it exits.</li>
+</ul>
+
+          </section>
+        
+          <section class="slide" data-state="25-event-loop-3">
+            <h3>Events</h3>
+<ul>
+<li>Exceptions work great in a single stack</li>
+<li><p>But can be confusing when stacks follow each other in sequence</p>
+<pre><code>  try {
+    setTimeout(function() {
+      throw new Error(&quot;oh no&quot;)
+    }, 10)
+  } except(err) {
+    console.log(err)
+  }</code></pre>
+</li>
+</ul>
+<p class="fragment">
+&quot;I see the try/catch, and I see the throw, why isn&#39;t this working?!&quot;
+</p>
+
+          </section>
+        
+          <section class="slide" data-state="26-exceptions">
+            <h3>Events</h3>
+<ul>
+<li>So JavaScript will do everything in its power to avoid throwing exceptions.</li>
+</ul>
+<p>This includes:
+
+</p>
+<ul>
+    <li class="fragment">Providing a special <code>nil</code> value to represent &quot;missing attribute&quot;</li>
+    <li class="fragment">Doing everything (including seemingly illogical things) to coerce two
+                        operands to the correct type</li>
+    <li class="fragment">
+        In short, exceptions are exceptional -- even more so than in Python.
+    </li>
+</ul>
+
+          </section>
+        
+          <section class="slide" data-state="27-python-disapproval">
+            <h3>ಠ_ಠ</h3>
+<pre><code>    try:
+        user = User.objects.get(username=&#39;username&#39;)
+    except User.DoesNotExist:
+        return False
+    else:
+        return True</code></pre>
+<ul>
+    <li class="fragment">Python likes exceptions as control flow</li>
+    <li class="fragment">You won&#39;t make any friends in JS if you use exceptions for control flow there.</li>
+</ul>
+
+          </section>
+        
+          <section class="slide" data-state="28-scope">
+            <h3>into the home-stretch...</h3>
+<p>So, there&#39;s two last WTF&#39;s we haven&#39;t answered:
+
+</p>
+<ul>
+    <li class="fragment">implicit <code>this</code></li>
+    <li class="fragment">scoping</li>
+</ul>
+
+          </section>
+        
+          <section class="slide" data-state="29-implicit-this">
+            <h3>implicit this</h3>
+<p>Why does JavaScript treat <code>this</code> differently
+from every other variable?
+
+</p>
+<ul>
+<li>It automatically gets set whenever you enter a function</li>
+<li>...whether or not you really wanted that behavior.</li>
+<li>Controlling what <code>this</code> is set to is the responsibility of the caller</li>
+</ul>
+
+          </section>
+        
+          <section class="slide" data-state="30-implicit-this-2">
+            <h3>implicit this</h3>
+<h2>So, why?</h2>
+<ul>
+<li><p>Implicit this is handy for certain situations:</p>
+<pre><code>  &lt;img onclick=&quot;this.src=&#39;some/new/value.png&#39;;&quot; /&gt;</code></pre>
+</li>
+<li><p>Remember, this is what JavaScript was originally for.</p>
+</li>
+<li>The basic use case is that in <code>x.y()</code>, <code>this</code> is <code>x</code> inside
+of <code>x.y()</code>.</li>
+<li>The dot operator does all the heavy lifting.</li>
+</ul>
+
+          </section>
+        
+          <section class="slide" data-state="31-implicit-this-3">
+            <h3>Implicit this</h3>
+<ul>
+<li>The real trouble is that &quot;caller&#39;s responsibility&quot; part:</li>
+</ul>
+<blockquote>
+<p>Controlling what <code>this</code> is set to is the responsibility of the caller
+
+</p>
+</blockquote>
+<ul>
+<li>Frown-town, for a lot of people</li>
+</ul>
+
+          </section>
+        
+          <section class="slide" data-state="32-implicit-this-4">
+            <h3>Setting this</h3>
+<p><ul>
+    <li class="fragment"><code>x.y()</code></li>
+    <li class="fragment"><code>y.call(x, arg)</code></li>
+    <li class="fragment"><code>y.apply(x, [arg])</code></li>
+    <li class="fragment"><code>y.bind(x, arg)()</code></li>
+</ul>
+<br />
+<br />
+</p>
+<h2 class="fragment">Why?</h2>
+
+          </section>
+        
+          <section class="slide" data-state="33-implicit-this-5">
+            <h3>Implicit this</h3>
+<ul>
+<li><p>Basically, JavaScript is saying &quot;functions are more important than the objects they&#39;re called on&quot;</p>
+</li>
+<li><p>You&#39;re able to take a function off one object and use
+it on another object.</p>
+</li>
+</ul>
+
+          </section>
+        
+          <section class="slide" data-state="34-implicit-this-6">
+            <h3>Implicit this</h3>
+<p><img class="fragment" src="http://blackhole.sk/~ziman/files/duck_typing.jpg" />
+
+</p>
+
+          </section>
+        
+          <section class="slide" data-state="35-scoping">
+            <h3>moving on...</h3>
+<p><img src="http://www.twinsupply.com/janitorial/images/100/PGC05112.JPG" alt="scope">
+
+</p>
+<h3 class="fragment">scoping</h3>
+
+          </section>
+        
+          <section class="slide" data-state="36-scoping">
+            <h3>scoping</h3>
+<ul>
+    <li class="fragment">
+        variables are scoped by function
+    </li>
+    <li class="fragment">
+        no matter where the var statement is in the function,
+        they&#39;re &quot;defined&quot; throughout the function
+    </li>
+    <li class="fragment">
+        which is to say they exist,
+        but they don&#39;t contain anything useful yet.
+    </li>
+</ul>
+
+          </section>
+        
+          <section class="slide" data-state="37-scoping-2">
+            <h3>scoping</h3>
+<p><img src="http://cdn.planetminecraft.com/files/resource_media/screenshot/1212/Megaman_Derp_1754708.jpg" class="fragment" />
+</p>
+
+          </section>
+        
+          <section class="slide" data-state="38-scoping-3">
+            <h3>scoping</h3>
+<h4>why function-level?</h4>
+<ul>
+<li>JavaScript is designed to be forgiving</li>
+<li>conditional definition can be confusing?</li>
+</ul>
+<p class="fragment">
+    That seems like a cop-out.
+</p>
+
+          </section>
+        
+          <section class="slide" data-state="39-scoping-4">
+            <h3>scoping</h3>
+<h4>why function-level?</h4>
+<ul>
+<li>Because scoping is analogous to how objects work in JavaScript</li>
+<li>Think of a new scope as a new object that inherits from the object represented by its parent scope</li>
+</ul>
+
+          </section>
+        
+          <section class="slide" data-state="40-scoping-5">
+            <h3>scoping</h3>
+<ul>
+<li><p>Setting a new variable runs up the scope chain to see if the variable is defined on any of these objects</p>
+</li>
+<li><p>If it gets to an object that has no parents, it sets the variable there.</p>
+</li>
+<li><p>That&#39;s why we get implicit globals.</p>
+</li>
+</ul>
+
+          </section>
+        
+          <section class="slide" data-state="41-scoping-6">
+            <h3>scoping</h3>
+<ul>
+<li>This makes some sense, given that
+JavaScript is trying its level best never to throw exceptions.</li>
+<li>Think of &quot;scoping strategies&quot; as a continuum.</li>
+<li>Python is local-by-default, shadowed-by-default.</li>
+<li>CoffeeScript is local-by-default, but doesn&#39;t shadow by default</li>
+<li>JavaScript is global-by-default, shadowing only explicitly </li>
+</ul>
+
+          </section>
+        
+          <section class="slide" data-state="42-scoping-7">
+            <h3>scoping</h3>
+<ul>
+<li><p>Given that you spend so much time in JavaScript
+dealing with variables available in a higher scope,
+it makes sense to walk the chain the way it does.</p>
+</li>
+<li><p>Another thing that falls out of that is that you want
+to have explicit control of shadowing.</p>
+</li>
+</ul>
+
+          </section>
+        
+          <section class="slide" data-state="43-scoping-8">
+            <h3>scoping</h3>
+<ul>
+<li><p>if JS were like Python, we&#39;d spend far more time
+explicitly specifying what outer scope we were using.</p>
+</li>
+<li><p>if JS were like CoffeeScript, we&#39;d fall victim to
+accidentally overwriting variables in the outer scopes.</p>
+</li>
+</ul>
+
+          </section>
+        
+          <section class="slide" data-state="44-okay">
+            <p><img src="http://27.media.tumblr.com/tumblr_l767magRMk1qzy0xuo1_400.jpg" alt="okay">
+</p>
+
+          </section>
+        
+          <section class="slide" data-state="45-okay">
+            <h3>that was a lot to absorb</h3>
+<ul>
+
+<li class="fragment">JavaScript hates exceptions, because...
+<li class="fragment">JavaScript is temporal, because...
+<li class="fragment">JavaScript has to deal with user events on a document.
+
+</ul>
+
+          </section>
+        
+          <section class="slide" data-state="46-okay">
+            <h3>and...</h3>
+<ul>
+
+<li class="fragment">
+JavaScript walks the scope chain to the top, because...
+
+<li class="fragment">
+JavaScript expects you to be dealing with nested functions, because...
+
+<li class="fragment">
+JavaScript is designed to work best on temporal problems.
+
+</ul>
+
+          </section>
+        
+          <section class="slide" data-state="47-problems">
+            <h3>JavaScript&#39;s biggest problem</h3>
+<p><img class="fragment" src="http://mlkshk.com/r/97VP" width="400" />
+
+</p>
+<p><h2 class="fragment">developers who misunderstand the language
+</p>
+
+          </section>
+        
+          <section class="slide" data-state="48-problems">
+            <h3>because...</h3>
+<ul>
+<li><p>If you don&#39;t understand the language,
+you don&#39;t understand its limitations.</p>
+</li>
+<li><p>If you don&#39;t understand its limitations,
+it will constantly surprise you.</p>
+</li>
+<li><p>If you are constantly surprised, you will
+write overly defensive code, or bad code.</p>
+</li>
+</ul>
+
+          </section>
+        
+          <section class="slide" data-state="49-problems">
+            <h3>being constantly surprised</h3>
+<h1>prevents you</h1>
+<h3>from designing good programs</h3>
+
+          </section>
+        
+          <section class="slide" data-state="50-solutions">
+            <h3>problems</h3>
+<p>If you&#39;re not able to design good programs because
+you&#39;re constantly surprised, you&#39;ll blame it on the
+language.
+
+</p>
+<p>Why is this so common?
+
+</p>
+<ul>
+<li><p>memorizing &quot;gotchas&quot; only gets you so far</p>
+</li>
+<li><p>and you&#39;ll still end up surprised.</p>
+</li>
+</ul>
+
+          </section>
+        
+          <section class="slide" data-state="51-solutions">
+            <h3>it&#39;s our fault</h3>
+<ul>
+<li><p>Most guides are phrased as a series of &quot;gotchas&quot;, not an introduction to the theme of how JS works</p>
+</li>
+<li><p>Working within an event loop is surprising at first, but guides usually gloss over it.</p>
+</li>
+</ul>
+
+          </section>
+        
+          <section class="slide" data-state="52-solutions">
+            <h3>advice</h3>
+<ul>
+<li><p>Choose a module loader. Understand how it works. Doesn&#39;t much matter which.</p>
+</li>
+<li><p>Pick (or write) a style guide. Stick to it.</p>
+</li>
+<li><p>Don&#39;t memorize exceptions to the rule, understand the reasoning behind the exception.</p>
+</li>
+</ul>
+
+          </section>
+        
+          <section class="slide" data-state="53-thanks">
+            <h1>Thanks</h1>
+<h3>For your time</h3>
+<ul>
+<li class="fragment"><a href="http://twitter.com/isntitvacant">@isntitvacant</a></li>
+<li class="fragment"><a href="http://github.com/chrisdickinson">chrisdickinson</a> on github</li>
+
+</ul>
+
+          </section>
+        
+      </div>
+      <div class="progress"><span></span></div>
+    </div>  
+    <script src="reveal.js/js/reveal.js"></script>
+    <script>
+
+      // Parse the query string into a key/value object
+      var query = {};
+      location.search.replace( /[A-Z0-9]+?=(\w*)/gi, function(a) {
+        query[ a.split( '=' ).shift() ] = a.split( '=' ).pop();
+      } );
+
+      // Fires when a slide with data-state=customevent is activated
+      Reveal.addEventListener( 'customevent', function() {
+        alert( '"customevent" has fired' );
+      } );
+
+      // Fires each time a new slide is activated
+      Reveal.addEventListener( 'slidechanged', function( event ) {
+        // event.indexh & event.indexv
+      } );
+
+      Reveal.initialize({
+        // Display controls in the bottom right corner
+        controls: false,
+
+        // Display a presentation progress bar
+        progress: false,
+
+        // If true; each slide will be pushed to the browser history
+        history: true,
+
+        // Loops the presentation, defaults to false
+        loop: false,
+
+        // Flags if mouse wheel navigation should be enabled
+        mouseWheel: true,
+
+        // Apply a 3D roll to links on hover
+        rollingLinks: false,
+
+        // UI style
+        theme: 'default', // default/neon
+
+        // Transition style
+        transition: 'linear' // default/cube/page/concave/linear(2d)
+      });
+
+      hljs.initHighlightingOnLoad();
+    
+    </script>
+</body>
+</html>

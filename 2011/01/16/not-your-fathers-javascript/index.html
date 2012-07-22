@@ -1,0 +1,487 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Not Your Father&#39;s Javascript | NEVERSAW.US</title>
+        <link rel="stylesheet" href="/media/css/reset.css"  media="screen" type="text/css" />
+        <link rel="stylesheet" href="/media/css/style.css" media="screen" type="text/css" />
+        <script type="text/javascript" src="//use.typekit.net/hae5bpn.js"></script>
+        <script type="text/javascript">try{Typekit.load();}catch(e){}</script>
+    </head>
+    <body id="">
+
+        <header>
+          <h1 id="logo"><a href="/" rel="top">NeverSawUs</a></h1>
+        </header>
+        <div id="target"></div>
+        <div id="wrap">
+            <nav>
+            
+                
+                    <a href="/2010/09/08/javascript-and-nodejs/" rel="prev">prev</a>
+                
+                
+  <aside>
+    <time>
+      Jan. 16, 2011
+    </time>
+  </aside>
+
+                
+                    <a href="/2011/01/23/introducing-didact/" rel="next">next</a>
+                
+            
+            </nav>
+            
+<article>
+  <h1>Not Your Father&#39;s Javascript</h1>
+<h2>How to use V8 to write cleaner JS</h2>
+<p>JavaScript has a reputation; while said reputation has vastly improved over the last year or because of the introduction of Node.js, it&#39;s still not 
+as sterling as it ought to be.
+
+</p>
+<p>Once you leap the various hurdles &mdash; the automatic binding of <code>this</code> and the way the prototype system works being the two major ones, you feel ready
+to sit down and write some neat JavaScript. Only there&#39;s a bit of a problem (especially coming from the golden fields of Python-land): best practices
+aren&#39;t easy to come by. Since there are so many ways of skinning a cat &mdash; all equally valid &mdash; often newcomers settle for the tried-and-true, but still
+verbose-and-fragile ways of attacking problems. This is exacerbated by the huge amount of technical writing about JavaScript on the internet &mdash; most of
+it is about the DOM, some of it attempts to apply to all implementations of JavaScript, and, if you&#39;re writing for a Node.js project,
+<em>very little of it applies to what you are trying to do</em>.
+
+</p>
+<p>So, I&#39;m going to attempt to introduce some better approaches to writing JavaScript for recent engines; with a focus on best practices for Node.js. These
+sections will cover an individual pain point, from low-level to higher-level problems, and may not be entirely limited to Node.js &mdash; I&#39;ll note when they
+can be safely applied (or how one can use them) in other environments.
+
+</p>
+<hr>
+<h1>The Basics</h1>
+<h2>Bare minimums of style</h2>
+<p>A quick aside, first &mdash; there is, generally, a style emerging across Node.js packages; I&#39;ll keep this as quick as possible:
+
+</p>
+<ul>
+<li>Variable declarations should be grouped at the top of their containing function.</li>
+<li>Two space tabs.</li>
+<li>camelCase should be used in naming methods, variables, etc.</li>
+<li>CapitalCase is preferred for functions that should be invoked as object constructors (e.g., <code>new Foo()</code>).</li>
+</ul>
+<p>One exception to the two-space tab rule is in the variable declaration portion (feel free to disagree with me here):
+
+</p>
+<pre><code><span class="comment">// this reads better</span>
+<span class="keyword">var</span> someVar,
+    someOtherVar;
+
+<span class="comment">// than this</span>
+<span class="keyword">var</span> someVar,
+  someOtherVar;</code></pre>
+<p>And yes that&#39;s super picky of me.
+
+</p>
+<h2>Functions</h2>
+<p>When declaring functions: 
+
+</p>
+<pre><code><span class="comment">// either use:</span>
+<span class="keyword">var</span> fn = <span class="keyword">function</span>() {
+
+};
+
+<span class="keyword">var</span> Dog = <span class="keyword">function</span>() {
+
+};
+
+<span class="comment">// or:</span>
+<span class="keyword">function</span> fn() {
+
+};
+
+<span class="keyword">function</span> Dog() {
+
+};</code></pre>
+<p>But the important thing is <em>please do not mix them</em>. It screws with readability.
+
+</p>
+<h2>Packages</h2>
+<p>Packages should look like this:
+
+</p>
+<pre><code>&lt;name_of_library>/
+    README
+    package.json
+    lib/
+        index.js
+        &lt;the rest of your files>
+    doc/
+        &lt;you have documentation, right<span class="preprocessor">?></span>
+    test/
+        &lt;you have tests, right<span class="preprocessor">?></span>
+    bin/
+        &lt;<span class="keyword">if</span> your library provides CLI programs, they should live here.>
+    src/
+        &lt;<span class="keyword">if</span> your project contains C++ code, it should live here.></code></pre>
+<p>Generally, you should be able to get away with just having <code>package.json</code>, a README, and <code>lib/</code> and <code>test/</code> folders.
+
+</p>
+<p>The file index.js should export the bulk of your public API. Under the CommonJS packaging rules, when a package directory provides
+an <code>index.js</code>, clients may import any of the files within that directory explicitly. When importing that directory, the <code>exports</code> object
+from index.js is used. For example:
+
+</p>
+<pre><code><span class="comment">// mylib/index.js</span>
+<span class="keyword">var</span> myapi = <span class="keyword">require</span>(<span class="string">'mylib/api'</span>);
+exports.api = myapi;
+
+<span class="comment">// mylib/api.js</span>
+exports.someAPIFunction = <span class="keyword">function</span>() {
+  <span class="keyword">return</span> <span class="string">"hello world"</span>;
+};</code></pre>
+<p>It&#39;s encouraged that you refer to other files within your package by their fully qualified path:
+
+</p>
+<pre><code><span class="comment">// inside the project "plate", under the file "lib/asdf.js":</span>
+<span class="comment">// use this:</span>
+<span class="keyword">var</span> libraries = <span class="keyword">require</span>(<span class="string">'plate/libraries'</span>);
+
+<span class="comment">// not this</span>
+<span class="keyword">var</span> libraries = <span class="keyword">require</span>(<span class="string">'./libraries'</span>);</code></pre>
+<p>It&#39;s a lot easier to keep track of what&#39;s going on, and it encourages you to expose your library files using <code>index.js</code> &mdash; &quot;We&#39;re all consenting adults here&quot; (thanks Python).
+
+</p>
+<p>When it comes to testing, you should pick your poison. <a href="http://vowsjs.org/">Vows.js</a> is particularly popular at the moment, and if that doesn&#39;t float your boat, you can always use the plain-jane <code>assert</code> module &mdash; <code>var assert = require(&#39;assert&#39;)</code> &mdash; and write your tests that way. The important thing is that they&#39;re there.
+
+</p>
+<p>There hasn&#39;t been much in the way of consensus vis-a-vis how to create your docs, but I&#39;d suggest using Sphinx (yes, even though it&#39;s Python) since you get free hosting by way of <a href="http://readthedocs.org/">Read the docs</a>. Again, even if it&#39;s just text files, it&#39;s nice for it to be there.
+
+</p>
+<hr>
+<h1>Iterating</h1>
+<h2>What is a good for?</h2>
+<p>Iteration in JavaScript comes baked into the language in two forms:
+
+</p>
+<pre><code><span class="keyword">for</span>(<span class="keyword">var</span> key in obj) {}
+<span class="keyword">for</span>(<span class="keyword">var</span> i = <span class="number">0</span>; i &lt; len; ++i) {}</code></pre>
+<p>These are workable approaches to iteration &mdash; they have their place, certainly, and no one should feel bad about using them. However, there are ways
+to write the above that feel a little less verbose, and perhaps a little less brittle. JavaScript provides a lot of methods for traversing arrays, let&#39;s
+take a quick look:
+
+</p>
+<pre><code><span class="keyword">var</span> arr = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>];
+
+<span class="comment">// this:</span>
+<span class="keyword">for</span>(<span class="keyword">var</span> i = <span class="number">0</span>, len = arr.length; i &lt; len; ++i) {
+  doSomething(arr[i]);
+}
+
+<span class="comment">// is equivalent to this.</span>
+arr.<span class="keyword">forEach</span>(<span class="keyword">function</span>(item, ind) {
+  doSomething(item);
+});
+
+<span class="comment">// which can be further boiled down to this:</span>
+arr.<span class="keyword">forEach</span>(doSomething);</code></pre>
+<p>It should feel a little cleaner &mdash; if you want (or need) to move your loop logic someplace else where it can, perhaps, be reused, <code>Array.prototype.forEach</code>
+is awesome for that. Here&#39;s another advantage:
+
+</p>
+<pre><code><span class="comment">// so we write this in one place:</span>
+<span class="keyword">var</span> arr = [<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="number">4</span>],
+    out = [];
+<span class="keyword">for</span>(<span class="keyword">var</span> i = <span class="number">0</span>, len = arr.length; i &lt; len; ++i) {
+  out.push(<span class="keyword">function</span>() {
+    console.log(i);
+  });
+}
+
+<span class="comment">// and somewhere else in our code we do this:</span>
+<span class="keyword">for</span>(<span class="keyword">var</span> j = <span class="number">0</span>, len = out.length; j &lt; len; ++j) {
+  out[j]();
+}
+
+<span class="comment">// it outputs "4 4 4 4"! oh no!</span></code></pre>
+<p>This is that famously sticky problem where functions close over variable references, not values. You could fix this by doing something ugly, like:
+
+</p>
+<pre><code><span class="keyword">for</span>(<span class="keyword">var</span> i = <span class="number">0</span>, len = arr.length; i &lt; len; ++i) {
+  out.push((<span class="keyword">function</span>(val) {
+    <span class="keyword">return</span> <span class="keyword">function</span>() {
+      console.log(val);
+    };
+  })(i));
+}</code></pre>
+<p>But that doesn&#39;t look nice, and you&#39;re introducing another function call <em>just to grab the appropriate scope</em>. Let&#39;s take a look at using <code>forEach</code>:
+
+</p>
+<pre><code><span class="keyword">var</span> arr = [<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="number">4</span>],
+    out = [];
+
+arr.<span class="keyword">forEach</span>(<span class="keyword">function</span>(item, ind) {
+  out.push(<span class="keyword">function</span>() {
+    console.log(ind);
+  });
+});
+
+out.<span class="keyword">forEach</span>(<span class="keyword">function</span>(item) {
+    item();
+}); 
+<span class="comment">// and it works as expected: 0 1 2 3</span></code></pre>
+<p>But while we&#39;re at it, let&#39;s use another Array builtin to really simplify this:
+
+</p>
+<pre><code>arr.map(<span class="keyword">function</span>(item, ind) {
+  <span class="keyword">return</span> <span class="keyword">function</span>() {
+    console.log(ind);
+  };
+}).<span class="keyword">forEach</span>(<span class="keyword">function</span>(item) {
+  item();
+});
+
+<span class="comment">// or even better:</span>
+arr.map(<span class="keyword">function</span>(item, ind) {
+  <span class="keyword">return</span> console.log.bind(console, ind);
+}).<span class="keyword">forEach</span>(<span class="keyword">function</span>(item) {
+  item();
+});</code></pre>
+<p><code>Array.prototype.map</code> returns a new Array with the result of the callback applied to each element. Another cool thing is that since it returns an array, we can simply chain a call to the result&#39;s <code>forEach</code> method to execute each item. In the second example, we boil this down even further, by using <code>Function.prototype.bind</code>, which is immensely powerful (and yet somehow, often ignored)!
+
+</p>
+<p>The other iteration members of the <code>Array</code> family are available for perusal <a href="https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Array#Iteration_methods">on the MDC Array page here</a>. The only method not supported by V8 is <code>reduceRight</code> &mdash; and in general, IE does not support any of them.
+
+</p>
+<p>The downside of these iteration functions is that they do not support any analogue of the <code>break</code> statement. There is one way to stop mid-array, and that is to throw an error and catch it outside of your <code>forEach</code> statement &mdash; not exactly the best way to go about it!
+
+</p>
+<p>However, whenever possible, using these methods should be preferred: They&#39;re more terse, lend themselves well to reusing logic, and perhaps most importantly, custom objects can support these methods (unlike the builtin looping).
+
+</p>
+<hr>
+<h1>Keys to the kingdom</h1>
+<h2>Tackling the other loop construct</h2>
+<p>As we&#39;ve seen, the iteration methods on Array are extremely useful when available. What about the other loop construct? What&#39;s the best ways to pull the keys off of an object? The default way gets hairy quickly when you&#39;re concerned about keys set on an Object&#39;s prototype:
+
+</p>
+<pre><code><span class="keyword">var</span> keys = [];
+<span class="keyword">for</span>(<span class="keyword">var</span> key in obj) <span class="keyword">if</span>(obj.hasOwnProperty(key)) {
+    keys.push(key);
+}</code></pre>
+<p>Blegh. There&#39;s a better way:
+
+</p>
+<pre><code><span class="keyword">var</span> keys = Object.keys(obj);</code></pre>
+<p>This is functionally equivalent to the above, and makes copying objects much easier:
+
+</p>
+<pre><code><span class="keyword">var</span> toObject = {};
+Object.keys(from).<span class="keyword">forEach</span>(<span class="keyword">function</span>(key) {
+    <span class="keyword">this</span>[key] = from[key];
+}.bind(toObject));</code></pre>
+<p>Again, we use <code>bind</code> to set the value of <code>this</code> within our callback to <code>toObject</code>. It gets better; if you want only the keys that
+start with <code>key_</code>:
+
+</p>
+<pre><code><span class="keyword">var</span> toObject = {},
+    fromObject = {
+        some:<span class="number">1</span>,
+        key_value:<span class="number">2</span>
+    },
+    re = /^key_/; 
+
+Object.keys(fromObject).filter(re.test.bind(re)).<span class="keyword">forEach</span>(<span class="keyword">function</span>(key) {
+    <span class="keyword">this</span>[key] = fromObject[key];
+}.bind(toObject));</code></pre>
+<p>Since <code>Object.keys</code> returns an <code>Array</code> object, we can use the filter method to select only the keys that match the regex. To provide our
+regex, we use <code>re.test.bind(re)</code> &mdash; that returns the <code>RegExp.prototype.test</code> function bound to <code>re</code>. Three lines and we&#39;ve got a nice way
+to filter properties while copying!
+
+</p>
+<p>Object.keys is not supported in IE6 or 7 &mdash; you can provide it by shoving in your own:
+
+</p>
+<pre><code>Object.keys = Object.keys ||
+  (<span class="keyword">function</span>(obj) {
+    <span class="keyword">var</span> out = [];
+    <span class="keyword">for</span>(<span class="keyword">var</span> key in obj) <span class="keyword">if</span>(obj.hasOwnProperty(key)) out.push(key);
+    <span class="keyword">return</span> out;
+  });</code></pre>
+<p>The keys property will not show up in other <code>for(var key in obj)</code> since it is attached to the Object directly, and not through it&#39;s prototype. 
+
+</p>
+<hr>
+<h1>Binding is Great</h1>
+<h2>Try not to be afraid of commitment</h2>
+<p><code>Function.prototype.bind</code> is wonderful &mdash; just wonderful. You may have noticed that I&#39;ve been sprinkling in a bit of usage in the previous examples;
+that&#39;s because I want you to love it as much as I do. It has exceptional power when it comes to making callback-ridden code more readable. Here&#39;s
+the absolute basics of what it does: 
+
+</p>
+<pre><code>something.bind(&lt;context>, &lt;curriedArg0>, &lt;curriedArg1>, &lt;curriedArgN...>); <span class="comment">// -> returns a function whose `this` variable is set to `context`.</span></code></pre>
+<p>A bound function never loses its context object &mdash; you could rebind it to another object, but that would be silly &mdash; the inner context object always
+wins. One nice thing, though, is the ability to curry arguments into the function. 
+
+</p>
+<pre><code><span class="keyword">var</span> add = <span class="keyword">function</span>(lhs, rhs) {
+    <span class="keyword">return</span> lhs + rhs;
+};
+
+<span class="keyword">var</span> add2 = add.bind({}, <span class="number">2</span>);     <span class="comment">// we set the context to an empty object because we don't really care about it.</span>
+add2(<span class="number">5</span>);                        <span class="comment">// returns 7.</span></code></pre>
+<p>Yes, yes, currying is nothing new &mdash; but in the context of Node.js, where you&#39;re constantly writing functions taking callbacks and callbacks taking
+yet other callbacks, and generally nesting more than the top ten most endangered birds of North America, this ability is priceless.
+
+</p>
+<p>Before we delve too deep, too greedily, like some function-binding crazed dwarves of Moria, let&#39;s address a common, simple problem that plagues
+most folk just getting used to JavaScript:
+
+</p>
+<pre><code><span class="keyword">var</span> Book = <span class="keyword">function</span>() {
+  <span class="keyword">this</span>.bookURL = <span class="string">'/some-url/'</span>;
+  <span class="keyword">this</span>.authorURL = <span class="string">'/cormac-mccarthy/'</span>;
+};
+
+Book.prototype.loadLibraryData = <span class="keyword">function</span>() {
+  $.getJSON(<span class="keyword">this</span>.bookURL, <span class="keyword">function</span>(bookData) {
+    $.getJSON(<span class="keyword">this</span>.authorURL, <span class="keyword">function</span>(authorData) {
+      buildBookAndAuthor(bookData, authorData);
+    });
+  });
+};
+
+b = <span class="keyword">new</span> Book();
+b.loadLibraryData();        <span class="comment">// oh no this doesn't work what fools we are</span></code></pre>
+<p>Losing <code>this</code> &mdash; it&#39;s a common problem. <code>this</code> inside the above callbacks is not the same as the <code>this</code> that <code>Book.prototype.getLibraryData</code> started with.
+There are workarounds &mdash; assigning <code>var self = this</code> and addressing everything as self afterwards &mdash; or alternatively executing a function immediately
+that takes a value of <code>book</code>, providing it <code>this</code> initially:
+
+</p>
+<pre><code>(<span class="keyword">function</span>(book) {
+    <span class="comment">// now we use book the rest of the way down</span>
+})(<span class="keyword">this</span>);</code></pre>
+<p>Let&#39;s rewrite it using bind.
+
+</p>
+<pre><code>Book.prototype.loadLibraryData = <span class="keyword">function</span>() {
+  $.getJSON(<span class="keyword">this</span>.bookURL, <span class="keyword">function</span>(bookData) {
+    $.getJSON(<span class="keyword">this</span>.authorURL, <span class="keyword">function</span>(authorData) {
+      buildBookAndAuthor(bookData, authorData);
+    }.bind(<span class="keyword">this</span>));
+  }.bind(<span class="keyword">this</span>));
+};</code></pre>
+<p>Just by adding <code>}.bind(this)</code> at the bottom of each function, we&#39;ve preserved the value of <code>this</code> throughout each function! Nice! So <code>bind</code> solves
+one of the major problems inherent in JavaScript &mdash; the <code>this</code> variable.
+
+</p>
+<p>But we can do better! Let&#39;s see if it can do anything about the callback soup, above:
+
+</p>
+<pre><code>Book.prototype.loadLibraryData = <span class="keyword">function</span>() {
+  <span class="keyword">var</span> curry = <span class="keyword">function</span>(url, callback) {
+    $.getJSON(url, callback.bind(<span class="keyword">this</span>, arguments[<span class="number">2</span>]));
+  };
+
+  $.getJSON(<span class="keyword">this</span>.bookURL, 
+    curry.bind(<span class="keyword">this</span>, <span class="keyword">this</span>.authorURL, buildBookAndAuthor)); 
+};</code></pre>
+<p>We took out that nest quicker than rampant deforestation. What did we do? We created a helper function that would push received data into the target callback as it became available. That way, when we called <code>$.getJSON</code> for the book data, it bound <code>buildBookAndAuthor</code>  to <code>buildBookAndAuthor(authorData, ...)</code>, and when the second callback came back, it completed our merry journey. As a bonus, it brought the <code>this</code> context from the originating context (<code>Book.prototype.getLibraryData</code>) into our <code>buildBookAndAuthor</code> function. Wow! Powerful stuff, man.
+
+</p>
+<p>You can take this further. Let&#39;s take a look at an example node.js server function:
+
+</p>
+<pre><code><span class="keyword">function</span>(request, response) {
+  fs.readFile(<span class="string">'someFile'</span>, <span class="keyword">function</span>(err, data) {
+    <span class="keyword">if</span>(err) response.end();
+    template.render(<span class="string">'some_template'</span>, <span class="keyword">function</span>(err, data) {
+        <span class="keyword">if</span>(err) response.end();
+        response.write(data);
+    }, data);
+  });
+};</code></pre>
+<p>Oof. Nesting, repeated logic (<code>if(err) response.end()</code>), and all we want to do, eventually, is write the template response to the response object. We can do better. Let&#39;s put on our binding hats:
+
+</p>
+<pre><code><span class="keyword">var</span> endOnError = <span class="keyword">function</span>(<span class="keyword">continue</span>, err, data) {
+    <span class="keyword">if</span>(err) 
+      <span class="keyword">this</span>.end();
+    <span class="keyword">else</span>
+      <span class="keyword">continue</span>(data);
+};
+
+<span class="keyword">function</span>(request, response) {
+    fs.readFile(<span class="string">'someFile'</span>, 
+        endOnError.bind(response, 
+            template.render.bind(template, <span class="string">'some_template'</span>, 
+                endOnError.bind(response, 
+                    response.write.bind(response)))));
+};</code></pre>
+<p>The nesting is still evident, but you can read it like a flow of instructions. Read the file, end if there&#39;s an error, otherwise render the template, if there&#39;s an error here we should end, too, and finally we write the data to the response. It starts to look a little bit like LISP &mdash; which can be a good or bad thing, depending on your point of view.
+
+</p>
+<p>The takeaway, here, is that you can wield <code>bind</code> to cut down on code repetition, keep track of that nasty <code>this</code> variable, and mow through nested callbacks like so many summer lawns. It can start to look like a different kind of soup if it&#39;s overused, so of course, be careful. It&#39;s best used in cases where you are redirecting events from one location to another:
+
+</p>
+<pre><code><span class="keyword">var</span> someEventEmitter,
+    someTargetEmitter;
+
+someEventEmitter.on(<span class="string">'error'</span>, someTargetEmitter.bind(<span class="string">'error'</span>));
+someEventEmitter.on(<span class="string">'data'</span>, someTargetEmitter.bind(<span class="string">'data'</span>));</code></pre>
+<p>It&#39;s super powerful, and not at all supported on IE6 and 7. To use it on the browser side, simply add this shim:
+
+</p>
+<pre><code><span class="keyword">Function</span>.prototype.bind ||
+(<span class="keyword">Function</span>.prototype.bind = <span class="keyword">function</span>(to) {
+  <span class="keyword">var</span> args = slice.call(arguments, <span class="number">1</span>),
+      <span class="keyword">self</span> = <span class="keyword">this</span>;
+  <span class="keyword">return</span> <span class="keyword">function</span>() {
+    <span class="keyword">self</span>.apply(to, args.concat(slice.call(arguments)));
+  };
+});</code></pre>
+<p>And you&#39;ll be good to go.
+
+</p>
+<hr>
+<h1>Standards then</h1>
+<h2>may not be so standard now</h2>
+<p>So as you can see, there are a lot of bits in the JavaScript standard library that really smooth out kinks in the language.
+
+</p>
+<p>It should also be noted that these aren&#39;t immediately obvious &mdash; you have to do a lot of delving through other&#39;s code on github to
+see these things in practice. The problem is that the old ways (while old and janky) still work &mdash; and there&#39;s a lot of verbiage on the
+internet dedicated to describing them. Finding the new, better ways is hard to do. Once you find them, though, you never want to give
+them up.
+
+</p>
+<p>I&#39;ll attempt to cover other semi-obscure bits of the language in other posts down the line.
+</p>
+
+</article>
+
+
+        </div>
+
+        <footer>
+            <div>
+                <h4>Chris Dickinson&rsquo;s personal blog</h4>
+                <ul>
+                  <li><a href="/feed.xml" rel="rss">RSS</a></li>
+                  <li><a href="http://twitter.com/isntitvacant" rel="twitter">@isntitvacant</a></li>
+                  <li><a href="http://github.com/chrisdickinson" rel="github">@chrisdickinson</a></li>
+                  <li><a href="http://search.npmjs.org/#/_author/Chris%20Dickinson" rel="npm">npm</a></li>
+                  <li><a href="http://pypi.python.org/pypi?%3Aaction=search&term=chris+dickinson&submit=search" rel="pypi">pypi</a></li>
+                  <li id="copy"><p>&copy; 2012</p></li>
+                </ul>
+            </div>
+        </footer>
+
+        <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+        </script>
+        <script type="text/javascript">
+            try{
+                var pageTracker = _gat._getTracker("UA-18206985-1");
+                pageTracker._trackPageview();
+            } catch(err) {}
+        </script>
+    </body>
+</html>
+
