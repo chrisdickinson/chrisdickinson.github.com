@@ -1,0 +1,248 @@
+# Javascript and Node.js
+## Gotchas
+ 
+[Yesterday](http://neversaw.us/2010/9/7/javascript-the-magic-parts/) I wrote a post about the
+two parts of Javascript that I considered magical. I wrote it in the hopes that newcomers to the
+language would be able to grasp the two hardest parts by comparing it to languages they were
+already familiar with (PHP, Python). Unfortunately I took a bit of an exasperated tone in that
+post, mainly because I had been seeing so much discourse on either side of the topic of Node.js
+and Javascript that felt like it was missing some integral points about the language.
+
+To sum up yesterday's post:
+
+1. Closures aren't what make Javascript special.
+2. Neither is the idea that you can run the same code on the browser as on the server.
+3. Event based programming is one of the things that makes Javascript special, as it's so suited to it.
+4. The tremendous effort being expended on making Javascript faster (by browser vendors) makes Javascript exciting.
+5. That there are numerous opportunities to contribute make javascript fun, especially in the context of Node.js.
+
+As for the magic parts I had initially tried to cover:
+
+6. Javascript closures never close over `this`.
+7. Javascript prototypes are strange at first, but ultimately you can relate them to Classes in Python.
+
+The last point drew a bit of flak, and I'll admit that prototypical inheritance based languages are
+formally different from classical object inheritance. However, I think it did some good to compare them --
+after all, classes in Python are objects too (`type` objects, to be specific), and regardless of the
+sugar of the language, Javascript objects using prototypes and Python objects share a lot of similarities.
+
+Also I'd like to apologize if the previous post came off as a rant -- that was a failing on my part --
+my goal is to hopefully inform and entertain (and get people interested in the weird things that I am
+interested in! Go meme propagation!)
+
+I'd like to follow on the heels of yesterday's post with a quick overview of some Javascript gotchas:
+some I glossed over yesterday, and some that came up last night as I was helping a friend debug some
+JS.
+
+-------------------------
+# Write Once, Run Anywhere
+## ...Is more painful than it seems
+
+The first point I'd like to go over is something I mentioned really briefly yesterday:
+
+> Javascript is a different language in Webkit, IE, and Firefox.
+
+Not to leave Opera out of the picture, of course. There's a sense that the only thing that really differs
+between the different implementations of Javascript is the DOM API. True, but the standard library varies
+wildly between the implementations, as does the syntax. 
+
+**So what's the takeaway here?** Well, if your library doesn't need to run in the browser, then by all means,
+write it using the subset of Javascript that V8 and Firefox are okay with. For example, let's make a set
+out of the properties of two objects.
+
+    var getKeys = function(obj1, obj2) {
+        var set = [];
+        var properties = Object.keys(obj1);
+        properties.concat(Object.keys(obj2));
+        properties.forEach(function(item) {
+            if(set.indexOf(item) === -1) {
+                set.push(item);
+            }
+        });
+        return item;
+    }
+
+And for fun, let's compare that to what you have to write to make it cross browser compatible:
+
+    var getKeys = function(obj1, obj2) {
+        var properties = [],
+            indexOf = Array.prototype.indexOf ? function(arr, needle) {
+                return arr.indexOf(needle);
+            } : function(arr, needle) {
+                for(var i = 0, len = arr.length; i < len; ++i) {
+                    if(arr[i] === needle) {
+                        return i;
+                    }
+                }
+                return -1;
+            },
+            name;
+        for(name in obj1) if(obj1.hasOwnProperty(name)) {
+            if(indexOf(properties, name) === -1) {
+                properties.push(name);
+            }
+        } 
+        for(name in obj2) if(obj2.hasOwnProperty(name)) {
+            if(indexOf(properties, name) === -1) {
+                properties.push(name);
+            }
+        }
+        return properties;
+    }; 
+
+We can't use `Object.keys`, we have to make a guard for `Array.indexOf`, and all around chaos ensues. Now,
+this could be refactored to be prettier, certainly. But it stands as a pretty good example of the expansion
+of the code you have to write to get things to work correctly cross browser. Also, remember that string handling
+in IE is crummy -- you cannot index a string using `string[index]` notation, you *must* use `string.charAt(index)`.
+If you forget, your punishment is a cryptic error message. Also, if you accidentally leave a trailing comma in an
+object literal, the code won't even compile.
+
+So, when you can -- and if you're writing for Node.js, you often can -- try to limit yourself down to the subset
+of Javascript that V8 supports. If you can't do that -- well, you really have to be cognizant of the fact that you're
+no longer writing modern Javascript, you *have* to target the lowest common denominator. To really appreciate how
+weird ECMAScript can be in practice, read through [this pdf](http://wiki.ecmascript.org/lib/exe/fetch.php?id=resources%3Aresources&cache=cache&media=resources:jscriptdeviationsfromes3.pdf).
+It's a Microsoft-compiled list of divergences from ECMAScript 3 across the major browsers (unfortunately, excluding
+Chrome).
+
+-------------------------
+# Where does that error go?
+## A really brief synopsis of how Node.js deals with errors
+
+This part is a bit more specific to Node.js. One of the biggest problems I've had thus far is exception handling.
+Coming from Python, where Exceptions are king, you'd think this wouldn't pose a problem for me -- but it's not
+the concept that gets me, it's the fact that when you throw an `Error` inside of a callback, depending on where
+that callback got called, that Exception can travel two very different routes.
+
+Exceptions will always fly back up the stack until they are caught, or they reach the end of the stack. That's where
+things get a little bizarre, in Node.js. Consider the following:
+
+    try { 
+        doSomething(function(err, result) {
+            if(err) {
+                throw err;
+            }
+        });
+    } catch(err) {
+        console.log(err);
+    }
+
+Now, where does `err` get caught? Well, the answer depends on what `doSomething` does. If `doSomething` looks like
+the following:
+
+    var doSomething = function(callback) {
+        callback(new Error(), "some value");
+    };
+
+It gets caught, as expected, in the wrapping `try / catch` block. However, if `doSomething` looks like this:
+
+    var doSomething = function(callback) {
+        var fs = require('fs');
+        fs.readFile('./test.txt', function(err, objects) {
+            callback(err, objects);
+        });
+    };
+
+The wrapping `try / catch` block does not catch the thrown `err`. Why? Because that stack has already completed -- the
+event loop in Node has a new stack, beginning with the results of `fs.readFile`. Any error thrown in that stack will
+bubble up that stack independent of the code calling `doSomething`. This is a major point of consternation for those
+not familiar with this behavior -- but giving a minute of thought, it begins to make sense. You can't return to the 
+calling stack; that code has already run. 
+
+-------------------------
+# Designing around callbacks
+## A rule of thumb
+
+The final gotcha I'd like to address involves designing Javascript APIs. I haven't seen this *too* often, but it bears
+mentioning: Any API you design that leverages another library that takes callbacks *must* somehow reflect this in your
+public API. There aren't safe ways to avoid it -- in glossing over it, you are intentionally introducing a race condition.
+
+So, for instance, I want to create a phone book API:
+
+    var PhoneBook = function(bookFile) {
+        this.bookFile = bookFile;
+    };
+
+    PhoneBook.prototype.load = function() {
+        var fs = require('fs'),
+            self = this;
+        try {
+            fs.readFile(this.bookFile, function(err, data) {
+                if(err) throw err;
+                self.data = data.split('\n');
+            });
+        } catch(err) {
+            self.data = null;
+        }
+        return self.data;
+    };
+
+This code won't work. The race condition introduced is as follows: I call readFile with a callback. That callback will not
+execute until my currently running stack is exhausted. However, I attempt to return `self.data` immediately after calling
+`fs.readFile` -- it will be `undefined`. *Gulp.* Even worse, if there's an error thrown in that callback -- as we discussed
+in the last section -- it will bubble up to the top of the stack and become an uncaught exception, ending my program.
+
+There are two solutions -- both reflect the necessary inversion of control that comes with using async callbacks in Node.
+
+The first solution is to simply make my `load` method take a callback:
+
+    PhoneBook.prototype.load = function(callback) {
+        var fs = require('fs'),
+            self = this;
+        fs.readFile(this.bookFile, function(err, data) {
+            if(!err) {
+                self.data = data.split('\n');
+            }
+            callback(err, self);
+        });
+    };
+
+Now when my `PhoneBook` is ready (or errored out) it will pass control back to my callback function, with any errors and a copy
+of the fully-populated `PhoneBook`.
+
+The other solution -- which I'll admit, I haven't used quite as often -- is to turn `PhoneBook` into an `EventEmitter`.
+
+    var events = require('events'),
+        sys = require('sys');
+    var PhoneBook = function(bookFile) {
+        var fs = require('fs'),
+            self = this;
+
+        events.EventEmitter.call(this);
+
+        fs.readFile(this.bookFile, function(err, data) {
+            if(err) {
+                self.emit('error', err);
+            } else {
+                self.emit('data', data.split('\n'));
+            } 
+        });
+    };
+    sys.inherits(PhoneBook, events.EventEmitter);
+
+Now clients using PhoneBook can listen for errors and success by attaching to an instance of phonebook like so:
+
+    var pb = new PhoneBook('asdf.txt');
+    pb.on('error', function(error) {
+        console.log(error);
+    });
+    pb.on('data', function(data) {
+        console.log(data);
+    });
+
+Which works out quite nicely. Both are valid methods of preserving the inversion of control through your library.
+Remember -- if you so much as *think* that some method of your library will use code that takes a callback, you
+*must* work that inversion of control up through the public API.
+<small>disclaimer: feel free to prove me wrong on this one, but as far as I've seen, it's true.</small>
+
+-------------------------
+# thar be dragons
+## really awesome dragons. like, with shades.
+
+Summing up, you should have these things in mind when you start our writing a Javascript library (especially for Node): 
+
+1. Does it *really* need to work in the browser, or can I target Node.js or Rhino and use modern Javascript? 
+2. Pay attention to the stack -- never take for granted that a callback will be run within the same stack. Throwing errors within callbacks is not such a great idea unless you *know* where you're throwing it to.
+3. Do the mental gymnastics of figuring out what parts of your library are blocking ahead of time, so you know where to expose that inversion of control in your public API.
+
+There are other little bits to watch out for, of course (my personal favorite being `"asdf asdf".replace("asdf", '')` will only replace the first instance of "asdf", that always bites me -- use `replace(/asdf/g, '')` instead); but if you can keep these things in mind while writing your library, you should generally be okay.
+

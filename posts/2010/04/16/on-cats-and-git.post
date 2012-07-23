@@ -1,0 +1,128 @@
+# Gitosis for kittens
+
+Gitosis is a great way to super-securely provide repository management for teams.
+However, there's a few points at which it kind of falls on its face.
+
+- Creating new repositories requires write-access to gitosis-admin
+
+- Forking teammate's repositories basically requires you to write a script
+to handle adding the `readonly` and `writeable` bits to every existing user's
+group. Past a team of two, this quickly gets unmaintainable.
+
+- In my opinion, it tries to do too much. It handles git, it handles auth, it handles
+what happens when the ssh command comes in from OpenSSH -- it's *monolithic*.
+
+
+With these points in mind, I set out to chop all of these little pieces of functionality 
+up into little, single-concern bits. I ended up with three projects, [Nappingcat][], [Kittygit][],
+and [Felix][]. These projects slice gitosis functionality into two app-level constructs, and
+one framework-level project. `Nappingcat` is the framework; it provides functionality for
+routing SSH commands and hooks for loading a simple auth backend. `Kittygit` is the git functionality;
+it knows how to speak to git, and provides a few niceties like creation of repositories and forking
+of existing repositories over the wire. `Felix` is the last (and probably most experimental piece),
+providing an authentication backend based around a JSON flat file, and providing over-the-wire
+commands for creating new users, adding SSH keys to those users, and granting permissions
+to the users.
+
+[Nappingcat]: http://github.com/chrisdickinson/nappingcat
+[Kittygit]: http://github.com/chrisdickinson/kittygit
+[Felix]: http://github.com/chrisdickinson/felix 
+
+-------------------------
+# Introducing Nappingcat
+## the archetypical cat
+
+Setting things up with nappingcat isn't immensely hard. It basically follows these easy steps:
+
+1. Clone the [nappingcat repository](git://github.com/chrisdickinson/nappingcat.git).
+2. Run `sudo setup.py install` to provide everyone the `nappingcat-serve` command.
+3. Create a new user
+
+        useradd -m \        # create a home directory
+                -U \        # create a new group for the user
+                -s /bin/bash \
+                -r \        # it's a system account.
+                git         # the name of the user
+
+4. Clone [kittygit](git://github.com/chrisdickinson/kittygit.git) and [felix](git://github.com/chrisdickinson/felix.git) into the new user's home directory.
+5. Open up `~/nappingcat.conf`, fill out the following data:
+
+        [kittyconfig]
+        routers =
+                kittygit.patterns
+                felix.patterns
+        auth = felix.JSONAuth
+        paths =
+                /home/<your git user>/kittygit
+                /home/<your git user>/felix
+                <wherever you installed nappingcat>
+        [kittygit]
+        git = /usr/bin/git
+        repo_dir = ~/repos
+        user = <your git user> 
+        host = <the externally accessible url for this server>
+
+        [jsonauth]
+        file = ~/auth.json
+
+6. Create a basic auth.json layout using the felix/bin/create_superuser file.
+
+        cd ~/felix
+        cat ~/.ssh/id_rsa.pub | python bin/create_superuser.py YOUR_USERNAME > ~/auth.json
+
+7. Great! Back to your computer. Put this at the end of your `~/.bashrc`, and `source ~/.bashrc`
+
+        kittygit() {
+            case $1 in
+                create)
+                    ssh git@unbearablecomics.com "kitty-git create-repo '$2'"
+                ;;
+                fork)
+                    ssh git@unbearablecomics.com "kitty-git fork '$2/$3.git'"
+                ;;
+                grant)
+                    ssh git@unbearablecomics.com "add-permission $2 '$3'"
+                ;;
+                revoke)
+                    ssh git@unbearablecomics.com "remove-permission $2 '$3'"
+                ;;
+                adduser)
+                    ssh git@unbearablecomics.com "add-user $2"
+                ;;
+                addkey)
+                    ssh git@unbearablecomics.com "add-key-to-user $2"
+                ;;
+            esac
+        }
+
+8. Give yourself the right to create repositories:
+
+        $ kittygit grant YOUR_USERNAME kittygit::create
+
+-------------------------
+# creating repos
+## like a boss
+
+Creating repos is easy enough at this point. It's just `kittygit create reponame`. Kittygit will
+send you back an beautifully green message saying "oh hey, here's the repo to clone." Go ahead and
+clone it. Things are great!
+
+    kittygit create garybusey
+
+But oh wait. No one is around to care. Maybe it's time to populate this lonely little cat-themed
+world. Let's pretend your name is "William Howard Taft", and you have a friend, "Harry Truman."
+
+    kittygit adduser harrytruman 
+    cat harry_trumans_id_rsa.pub | kittygit addkey harrytruman 
+    kittygit grant harrytruman kittygit::read::williamhowardtaft/garybusey
+ 
+Now your friend has access to read your repository. Your friend, we'll call him If he or she installs the kittygit bash function
+above, working with your code is now as easy as:
+
+    kittygit fork williamhowardtaft garybusey
+    git clone git@example.com:harrytruman/garybusey.git
+    # BAM INSTANT GARY BUSEY
+    kittygit grant williamhowardtaft kittygit::read::harrytruman/garybusey
+
+And now Harry Truman can tell Taft -- casually over a light lunch, perhaps -- that Taft can add
+his copy of garybusey as a remote. 

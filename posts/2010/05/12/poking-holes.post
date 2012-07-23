@@ -1,0 +1,217 @@
+# Templates kind of suck.
+## But that's kind of what they're for.
+
+Over the last few weeks, I've been musing about the state of template languages. Template
+languages are, as a coworker mentioned to me at the outset of this musing, the Vietnam War
+of programming. There's no **super** great solution, but there are a bevy of languages out
+there that solve 80% of the problem.
+
+So what's the problem? Well, the issue at hand is that we want to strongly decouple display
+logic from our control logic (or view logic, if you're in the Django camp). Ideally, we do
+this in such a way that whatever the resultant language looks like, it's easier for 
+non-programmers to pick up and perform meaningful work with.
+
+-------------------------
+# A quick overview
+## don't blink.
+
+There are a couple of broad strokes by which we attempt to achieve this "programming lite"
+decoupling. The first victim in the Template War is logic constructs. There's a bevy of
+language-level logic constructs that one has to be innately familiar with to even start to
+produce meaningful programs. `for` and `while` loops; `break`, `continue`, `raise/throw`
+breaking concepts, hell, even `if` statements can be dumbed down for templating languages.
+The Django template language attacks this head-on by totally excising the breaking concepts,
+and only allowing one type of loop -- a loop over an iterable. And since iterables are
+provided to the template designer, there's no way for a designer to put logic-heavy code into
+their templates -- for instance, an infinite loop that breaks once a certain condition is met.
+
+Django Templates are a more tooled version of PHP's Smarty templates -- and I'm going out on a 
+little limb here by saying that they were probably *influenced* by Smarty. Smarty, however,
+doesn't really restrict the template designer at all inside it's templates -- hell, it can
+drop down to straight PHP if need be. I'd venture to say that while this is an attempt to solve
+100% of the problem of writing templates, it's a really bad solution.
+
+For one, PHP itself is a templating language -- that's what it was pretty much written
+to be. Adding a syntactic layer on top of PHP is just going to confuse things. (Disclaimer:
+I spent about a year and a half writing Smarty templates for a large-ish PHP promotional
+products company, so the pains of Smarty are fairly well known to me). The fact that pretty much
+anything available to you in PHP is available to you in Smarty does not do much to strengthen
+Smarty's case. *It's a crappy solution to a crappy problem*, to be florid about it.
+
+To rebuke PHP a little bit -- and not just because it's the popular thing to do -- as a templating
+language it too kind of falls flat. While the templates can definitely be decoupled from logic code,
+since it's an entire programming language, you don't see this happening too often with folks just
+picking up the language. The decoupling has to come from a design decision on high: someone who
+actually knows how to program. Not a designer. Secondly, whatever designer picks up a PHP template
+pretty much needs to know how to program. So using PHP templates covers 100% of the potential problems
+of writing a template, but fails at the original goals -- "You don't have to be a programmer", and
+"Templates, by wont of being view logic, should be decoupled from control logic."
+
+-------------------------
+# And so, back to Django
+## just for a bit I promise
+
+Django templating improves on the concepts in Smarty and PHP, but doesn't really do too many
+revolutionary things. It embraces the idea that templating is a 80%-solution affair with gusto,
+and attempts to introduce a "one true path" for situations that 80% doesn't cover.
+
+That is to say, custom template tags.
+
+I think they're a wart, but a load-bearing wart. Without being able to write custom template
+tags, you lose the ability to solve the entirety of the display problem. Complex problems demand
+complex logic, and complex logic does not belong in templates. But ultimately it *is* still display
+logic, however complex it is, so it's shoved into a template tag that can be written in an honest-to-god
+programming language.
+
+But there is a mental overhead here -- especially in the case of inclusion tags, where God knows
+what context you've been handed. There's the fact that you have to track down exactly where the
+tag in question is coming from, which takes a minute to actually figure out. You have to jump out
+of editing, find all of the files that are represented with `{% load blah %}` tags across all
+of your applications, and then find out exactly which file contains the function that returns
+the node that renders the template fragment you are looking for. Yech. But it's necessary, so that
+you can *solve all of the problems*, and it is a definite improvement on what Smarty and PHP do:
+give you the entire goddamned programming language in a big steaming pile.
+
+So I'll come right out and say that Django templates are an improvement over Smarty and PHP.
+But it's got warts. 
+
+-------------------------
+# Warts on warts
+## gross
+
+So I've railed on three template languages (having left out HAML and ERB and, well, pretty much
+every Ruby templating language, an egregious error) thus far.
+
+And I've left out another problem that templating langauges (at least, traditional templating languages)
+fail at.
+
+HTML5 is coming up quick. Usually, all of my templates are written in XHTML or HTML4 transitional.
+When I wrote the template to display a list of my blog posts, at heart, I really didn't care whether
+it represented them as closed `<li>` tags or unclosed, I just followed my doctype's requirements; or that
+my top level navigation was presented as yet another unordered list tag and not a `<nav>` tag. I knew
+what I wanted and I took steps to get there by writing the flavor of HTML appropriate for the doctype.
+
+Why should templates care what they're emitted as? Ultimately, they're view logic. And maybe, when I view
+my post list template, I *want* HTML4, or maybe I want HTML5, or JSON, or hell, even XHTML.
+
+Also, writing
+
+    <ul id="post-list">
+        {% for post in post_list %}
+            <li><a href="{{ post.get_absolute_url }}" title="{{ post.title }}">{{ post.title }}</a>
+        {% endfor %}
+    </ul>
+
+seems needlessly verbose, especially given that I have to write it like a million times for each discrete
+type of data that needs a list page.
+
+The issue at hand, I guess, is that our display logic layer -- the thing that's telling HttpRespone what
+to contain (usually HTML) -- is inflexible and irrevocably tied to the output format. That seems silly.
+The traditional template languages I discussed all work like this: instead of saying what we *mean*,
+we write boilerplate HTML specific to a certain doctype, and poke holes in it for our display logic.
+
+-------------------------
+# Aaalll aboard the abstraction train!
+## Wooo-woooo
+
+I haven't discussed any of the Ruby templating languages up until now. Some, like HAML and Markaby, are
+getting closer to what I'd like to see -- abstractions of the target format into a DSL (which is really
+all a templating language is). HAML in particular is very close to what I'd like to see, though little
+bits of Ruby peek out on occasion.
+
+I do like that HAML abstracts out from the typical "poke some holes in HTML" approach to templating. It
+still feels like it's a little too tied to the one-to-one template to HTML relation, however.
+
+In my perfect world, my ideal template language would be able to define a DSL for the doctype it wanted to create:
+
+    # html5.doctype
+    document -> {
+        <!doctype html>
+        <html>{% insertion_point %}{% end_insertion_point %}</html>
+    }
+
+    meta -> {
+        <head>
+            <meta charset="{{ self.meta-charset }}">
+            <meta name="keywords" value="{{ self.meta-keywords }}">
+            <title>{{ self.title }}</title>
+        </head>
+    }
+
+    link_list -> {
+        <ul id="{{ self.id }}" class="{{ self.class }}">
+            {% for item in incoming %}
+                <li><a href="{{ item.get_absolute_url }}" title="{{ item.title }}">{{ item.title }}</a>
+            {% else %}
+                <li>{{ self.empty-message }}
+            {% endfor %}
+        </ul>
+    }
+
+    content -> {
+        <body id="{{ self.id }}" class="{{ self.class }}">
+            <div id="wrap">
+                {% insertion_point %}{% end_insertion_point %}
+            </div>
+        </body>
+    }
+
+    navigation -> {
+        <nav>
+            {% insertion_point %}{% end_insertion_point %}
+        </nav>
+    }
+
+For your site you'd extend the existing doctype.
+
+    # mysite/templates/html5.doctype
+    navigation:extend -> {
+        <a title="home" href="/">Home</a>
+        <a title="posts" href="{% url post-list %}">posts</a>
+    }
+
+And your actual template would look like this:
+
+    # post-list.tpl
+    document meta {
+        title: "Post list.";
+        meta-charset:"UTF-8";
+        meta-keywords:"cats hats bagels sandwiches";
+    }
+    document content nav {}
+    document content link_list % posts { empty-message:"We're sorry, there are no posts."; }
+
+There's your entire document. Most of your time is spent up front defining the doctype module, but once that's done,
+provided one can override elements from an existing doctype, you can customize the pieces to your liking. 
+
+this would render into:
+
+    <!doctype html>
+    <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="keywords" value="cats hats bagels sandwiches">
+            <title>Post list.</title>
+        </head>
+        <body id="" class="">
+            <div id="wrap">    
+                <nav>
+                    <a title="home" href="/">Home</a>
+                    <a title="posts" href="/posts/">posts</a>
+                </nav>
+                <ul id="" class="">
+                    <li>We&rsquo;re sorry, there are no posts.</li>
+                </ul>
+            </div>
+        </body>
+    </html>
+
+Now I can't decide if this is actually better, but you'll have to warrant it is a drastically different
+stab at how templating works. It essentially breaks templating into two languages: structural and emitter
+languages. Doctype definitions essentially define a portion of reusable HTML in a certain flavor that can
+use an incoming `block` of css-style context coming in to render, or an `incoming` iterable. They would 
+have full access to the django template language internally, and the `{% insertion_point %}` is essentally
+an unnamed `{% block %}` tag used by incoming fragments to insert into.
+
+The existence of the Django template language at the root of all of this provides a "one true path" for dropping
+into a higher level language.

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block extra_title %}{{ meta.title }} | {% endblock %}
+
+{% block nav_between %}
+  <aside>
+    <time>
+      {{ meta.pub_date|date }}
+    </time>
+  </aside>
+{% endblock %}
+
+{% block content %}
+<article>
+  {{ data|safe }}
+</article>
+
+{% endblock %}

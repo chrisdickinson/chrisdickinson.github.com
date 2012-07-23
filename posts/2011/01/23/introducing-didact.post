@@ -1,0 +1,54 @@
+# Introducing Didact.
+## 21st century show and tell.
+
+The other day I was busily hacking away on a post that does a walkthrough on Node.js -- I know, I know, I'm a bit of
+a one-trick pony -- but I stopped about a page in. See, I had a problem: walkthroughs are sort of a "show & tell" experience.
+In real life, this is a fairly seamless experience: you hold up the thing you're showing, and you talk over the top of
+it, explaining how awesome it is. Most presentations boil down to this, too. There's a hiccup, however, when it comes to
+blogging. You have to do a one-two punch of "Here's some code" and "Here's what it does", sequentially. Not to mention the
+fact that the code on your blog has to be tested and retested on it's own, in it's own environment. So the thing you're 
+showing gets transformed by the act of telling about it. Eventually, due to the universal principle of entropy, the code
+on your blog will drift out of sync with the code on your website ([as it did, unfortunately, here](http://neversaw.us/2010/5/20/py-a-la-node/)).
+It's especially hard when you try to iterate over a piece of code several times in the same post, as you end up having to
+make sure each piece of code works on it's own and that it still all makes sense over the course of the post. And don't
+get me started on changes where you have to show more than one file! It's dreadful -- really dreadful.
+
+Keeping in mind that I like to write posts with an eye towards iterating over concepts, and that I like to show examples of
+these iterations alongside my explanation of *why* I did them, an idea started to form -- why not build a system to tie my
+blog posts to git repositories?
+
+Further, why not tie it to [Github](http://github.com/)? They've got a beautiful JSONP api that I've been trying to find an
+excuse to use anyway. I could tie specific sections of my post to specific revisions of a repository -- and using an API, show
+the relevant files (or files in a directory) that have changed. It'd be great if it was hands-free, to boot; users *could* navigate
+through the repository filesystem, but it'd be nice if as they scrolled past a relevant point in the post, this API would automatically
+show them exactly what I wanted to show them.
+
+-------------------------
+# Which is what just happened now.
+## Hopefully.
+
+Well, isn't that a thing? As you scrolled past the header, the viewer on the left just showed you a specific file stapled to a specific
+revision. What I'm showing you is part of my "tempisfugit" native git client for Node -- sort of a side project that I'd love to write
+a bit more about later. I'm calling the API that I'm using to present this to you [Didact](http://dictionary.reference.com/browse/didactic).
+It works by selecting a repository from Github that you'd like to talk about, and then adding `data-didact` to specific tags throughout your
+post.
+
+They take the form:
+
+    <h1 data-didact="8a47f966ecef391c8f42b636975472ece91c3d6e 'lib' L29">Something that triggers didact</h1>
+
+As you scroll past this `<h1>`, didact will automatically focus on that path at that revision, at those lines. Cool, huh? Users can still
+navigate through the repository on the left if they'd like, so if you wanted to, say, show them a directory, that would absolutely fine.
+
+In fact, let's try it: 
+
+-------------------------
+# Let's look at a directory!
+## Again, hopefully.
+
+In fact, you can show them several versions of your repository over time, by changing the commit hash or tag you're pointing at -- which
+certainly sates my urge to iterate over a concept visually. 
+
+This view is looking at the tempisfugit repository at an earlier version. Scrolling back up will go back to the previous views.
+
+I've still got to wire up line highlighting, split views, and a way to view the current file / directory as a path. Woo.
